@@ -79,7 +79,7 @@ class qe_wannier_in:
         if(self.mag):
             self.system_str += "  nspin = 2\n"
             for i in range(ntyp):
-                self.system_str += "  starting_magnetization(" + str(i+1) + ") = 3.0\n"
+                self.system_str += "  starting_magnetization(" + str(i+1) + ") = 1.0\n"
         elif(self.so):
             self.system_str += "  lspinorb = .true.\n"
             self.system_str += "  noncolin = .true.\n"
