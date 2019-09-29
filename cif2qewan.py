@@ -162,6 +162,7 @@ class qe_wannier_in:
             self.pseudo_str = self.pseudo_str.replace('pbe', 'rel-pbe')
 
         self.electrons_str = re.sub("  conv_thr.*\n", "  conv_thr = 1.d-10\n", self.electrons_str)
+        self.electrons_str += "  diago_full_acc = .true.\n"
 
         self.nscfk = [ min( max(nk, 4), 8 ) for nk in self.kmesh ]
         self.kpoints_str = "K_POINTS {crystal}\n"
