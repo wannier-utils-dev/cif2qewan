@@ -6,8 +6,8 @@ cif2qewan.py is a simple python script to create quantum-ESPRESSO and wannier90 
   
   2. Prepare pseudopotentials in PSLibrary.
   
-	3. Download or clone the github repository, e.g.
-		> git clone https://github.com/wannier-utils-dev/cif2qewan
+  3. Download or clone the github repository, e.g.
+  > git clone https://github.com/wannier-utils-dev/cif2qewan
 
   4. Edit cif2cell_path and pseudo_dir in cif2qewan.py.
   
