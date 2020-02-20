@@ -135,7 +135,7 @@ class qe_wannier_in:
                     ecut_wfc = max(ecut_wfc, ps.ecut_wfc())
                     self.pseudo_str += re.sub('[A-Za-z]+_PSEUDO', ps.pseudo_file(), line)
                     if(self.so and not self.mag):
-                        self.pseudo_str = self.pseudo_str.replace('pbe', 'rel-pbe')
+                        self.pseudo_str = self.pseudo_str.replace('.pbe', '.rel-pbe')
                     self.projection_str += "{}:{}\n".format(atm, ",".join(list(ps.wannier_orb)))
                     num_wann_list[atm] = ps.num_wann
                     nexclude_list[atm] = ps.nexclude
@@ -159,7 +159,7 @@ class qe_wannier_in:
             so_str += "  angle2 = 0\n"
             self.system_str = self.system_str.replace("  nspin = 2\n", so_str)
 
-            self.pseudo_str = self.pseudo_str.replace('pbe', 'rel-pbe')
+            self.pseudo_str = self.pseudo_str.replace('.pbe', '.rel-pbe')
 
         self.electrons_str = re.sub("  conv_thr.*\n", "  conv_thr = 1.d-10\n", self.electrons_str)
         self.electrons_str += "  diago_full_acc = .true.\n"
