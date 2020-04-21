@@ -145,21 +145,25 @@ class qe_wannier_in:
         self.control_str = self.control_str.replace("'scf'", "'nscf'")
 
         system_add_str  = "  nosym = .true.\n"
-        if(self.so):
+        if(self.so or self.mag):
             system_add_str += "  nbnd = {}\n".format((self.nexclude + self.num_wann*3)*2)
         else:
             system_add_str += "  nbnd = {}\n".format(self.nexclude + self.num_wann*3)
         self.system_str = self.system_str.replace("&system\n", "&system\n" + system_add_str)
 
-        if(self.so and self.mag):
-            so_str  = "  lspinorb = .true.\n"
-            so_str += "  noncolin = .true.\n"
-            so_str += "  lforcet = .true.\n"
-            so_str += "  angle1 = 0\n"
-            so_str += "  angle2 = 0\n"
-            self.system_str = self.system_str.replace("  nspin = 2\n", so_str)
+        if(self.mag):
+            if(self.so):
+                mag_str  = "  lspinorb = .true.\n"
+            else:
+                mag_str  = "  lspinorb = .false.\n"
+            mag_str += "  noncolin = .true.\n"
+            mag_str += "  lforcet = .true.\n"
+            mag_str += "  angle1 = 0\n"
+            mag_str += "  angle2 = 0\n"
+            self.system_str = self.system_str.replace("  nspin = 2\n", mag_str)
 
-            self.pseudo_str = self.pseudo_str.replace('.pbe', '.rel-pbe')
+            if(self.so):
+                self.pseudo_str = self.pseudo_str.replace('.pbe', '.rel-pbe')
 
         self.electrons_str = re.sub("  conv_thr.*\n", "  conv_thr = 1.d-10\n", self.electrons_str)
         self.electrons_str += "  diago_full_acc = .true.\n"
