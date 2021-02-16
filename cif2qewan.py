@@ -52,7 +52,8 @@ class qe_wannier_in:
             # call cif2cell
             os.system(cif2cell_path + " -p pwscf --setup-all --k-resolution={:0.3f} --print-digits=10 -o {} {}".format(scf_k_resolution, cif_scf_in, cif_file))
 
-        return open(cif_scf_in).readlines()
+        with open(cif_scf_in, "r") as f:
+            return f.readlines()
 
     def read_set_system(self):
         # set ibrav, A, ntyp, nat
@@ -108,6 +109,8 @@ class qe_wannier_in:
         self.projection_str = ""
         num_wann_list = {}
         nexclude_list = {}
+        self.atom_list = []
+        self.atom_pos_list = []
         self.num_wann = 0
         self.nexclude = 0
         for i, line in enumerate(self.lines):
@@ -121,6 +124,10 @@ class qe_wannier_in:
                 self.wan_atompos_str = "".join(self.lines[i+1:i+nat+1])
                 for j in range(nat):
                     atm = self.lines[i+j+1].split()[0]
+
+                    self.atom_list.append(atm)
+                    self.atom_pos_list.append([float(x) for x in (self.lines[i+j+1].split()[1:4])])
+
                     self.num_wann += num_wann_list[atm]
                     self.nexclude += nexclude_list[atm]
             if ("K_POINTS" in line): 
@@ -153,9 +160,9 @@ class qe_wannier_in:
 
         if(self.mag):
             if(self.so):
-                mag_str  = "  lspinorb = .true.\n"
+                mag_str = "  lspinorb = .true.\n"
             else:
-                mag_str  = "  lspinorb = .false.\n"
+                mag_str = "  lspinorb = .false.\n"
             mag_str += "  noncolin = .true.\n"
             mag_str += "  lforcet = .true.\n"
             mag_str += "  angle1 = 0\n"
@@ -177,6 +184,65 @@ class qe_wannier_in:
             self.kpoints_str += kstr
             self.wan_kmesh += kstr
 
+    def shift_k_nscf(self):
+        """
+        You MUST call this function after convert2nscf() was called.
+        Creating nscf to calculate at shifted k-points from the original k-points.
+        The shifted value is a half of one k-mesh in each of x,y,z directions.
+        """
+        self.control_str += "  verbosity = 'high'\n"
+        self.system_str = self.system_str.replace("  nosym = .true.\n", "")
+        if(self.so or self.mag):
+            nbnd = (self.nexclude + int(self.num_wann*1.5))*2
+        else:
+            nbnd = self.nexclude + int(self.num_wann*1.5)
+        self.system_str = re.sub("  nbnd.*\n", "  nbnd = {}\n".format(nbnd), self.system_str)
+        self.electrons_str = self.electrons_str.replace("  diago_full_acc = .true.\n", "")
+        self.electrons_str = re.sub("  conv_thr.*\n", "  conv_thr = 1.d-8\n", self.electrons_str)
+        self.kpoints_str = "K_POINTS {automatic}\n"
+        self.kpoints_str += "{0[0]} {0[1]} {0[2]}  1 1 1\n".format(self.nscfk)
+
+    def convert2band(self):
+        self.control_str = self.control_str.replace("'nscf'", "'bands'")
+        self.kpoints_str = "K_POINTS {crystal_b}\n"
+        self.kpoints_str += "{}\n".format(len(self.tick_labels))
+        for i in range(len(self.tick_labels)):
+            kstr = "{:15.10f} {:15.10f} {:15.10f}    {}    !  {}\n".format(self.tick_locs[i][0], self.tick_locs[i][1], self.tick_locs[i][2], 20, self.tick_labels[i])
+            self.kpoints_str += kstr
+
+    def calc_bands_seekpath(self):
+        try:
+            import seekpath
+
+        except ImportError:
+            print("Failed to import seek path. Simple kpath is used instead.")
+            self.tick_labels = ['R', 'G', 'X', 'M', 'G']
+            self.tick_locs = [[0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [0.5, 0.0, 0.0], [0.5, 0.5, 0.0], [0.0, 0.0, 0.0]]
+            return
+
+        import pymatgen as mg
+
+        cell = np.array([self.a1, self.a2, self.a3])
+        pos = self.atom_pos_list
+        z = [mg.Element(s).Z for s in self.atom_list]
+        kpath = seekpath.getpaths.get_explicit_k_path([cell, pos, z])
+
+        new_b = kpath['reciprocal_primitive_lattice']
+        m = np.matmul(new_b,cell.T) / (2 * np.pi)
+        self.kpoints_rel = [ np.matmul(k, m) for k in kpath["explicit_kpoints_rel"] ]
+
+        kpoints_labels = kpath["explicit_kpoints_labels"]
+
+        self.tick_locs = []
+        self.tick_labels = []
+
+        for i, label in enumerate(kpoints_labels):
+            if(label == ""): continue
+            label = label.replace("GAMMA","G")
+            label = label.replace("SIGMA","S")
+            self.tick_labels.append(label)
+            self.tick_locs.append(self.kpoints_rel[i])
+
     def write_pwscf_in(self, pwscf_in):
         fp = open(pwscf_in, "w")
         fp.write(self.control_str + "/\n")
@@ -186,6 +252,15 @@ class qe_wannier_in:
         fp.write(self.pseudo_str + "\n")
         fp.write(self.atompos_str + "\n")
         fp.write(self.kpoints_str + "\n")
+        fp.close()
+
+    def write_band_in(self, band_in):
+        fp = open(band_in, "w")
+        fp.write("&bands\n")
+        fp.write(" prefix = 'pwscf'\n")
+        fp.write(" outdir = './work/'\n")
+        fp.write(" filband = 'bands.out'\n")
+        fp.write("/\n")
         fp.close()
 
     def write_pw2wan(self, pw2wan):
@@ -199,6 +274,7 @@ class qe_wannier_in:
         fp.write(" write_amn = .true.\n")
         fp.write(" write_unk = .false.\n")
         fp.write("/\n")
+        fp.close()
 
     def write_wannier(self, wannier_in):
         fp = open(wannier_in, "w")
@@ -248,10 +324,8 @@ class qe_wannier_in:
         fp.write("end kpoints\n\n")
 
         fp.write("Begin Kpoint_Path\n")
-        fp.write("R  0.5  0.5  0.5   G  0.0  0.0  0.0\n")
-        fp.write("G  0.0  0.0  0.0   X  0.5  0.0  0.0\n")
-        fp.write("X  0.5  0.0  0.0   M  0.5  0.5  0.0\n")
-        fp.write("M  0.5  0.5  0.0   G  0.0  0.0  0.0\n")
+        for i in range(len(self.tick_labels) - 1):
+            fp.write("{0} {1[0]:14.10f} {1[1]:14.10f} {1[2]:14.10f}  {2} {3[0]:14.10f} {3[1]:14.10f} {3[2]:14.10f}\n".format(self.tick_labels[i], self.tick_locs[i], self.tick_labels[i+1], self.tick_locs[i+1]))
         fp.write("End Kpoint_Path\n")
 
         fp.close()
@@ -435,10 +509,6 @@ if __name__ == '__main__':
 
     cif_file = args["<cif_file>"]
 
-    #print(cif_file)
-    #print("so: {}".format(args["--so"]))
-    #print("mag: {}".format(args["--mag"]))
-
     qe_wan = qe_wannier_in(cif_file, args["--so"], args["--mag"])
 
     qe_wan.write_pwscf_in("scf.in")
@@ -447,6 +517,18 @@ if __name__ == '__main__':
 
     qe_wan.write_pwscf_in("nscf.in")
 
+    qe_wan.calc_bands_seekpath()
+
     qe_wan.write_pw2wan("pw2wan.in")
 
     qe_wan.write_wannier("pwscf.win")
+
+    if not os.path.exists("check_wannier"): os.mkdir("check_wannier")
+    qe_wan.shift_k_nscf()
+    qe_wan.write_pwscf_in("check_wannier/nscf.in")
+
+    if not os.path.exists("band"): os.mkdir("band")
+    qe_wan.convert2band()
+    qe_wan.write_pwscf_in("band/nscf.in")
+    qe_wan.write_band_in("band/band.in")
+
