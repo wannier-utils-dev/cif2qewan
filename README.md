@@ -8,27 +8,28 @@ cif2qewan.py is a simple python script to create quantum-ESPRESSO and wannier90 
   
   3. Download or clone the github repository, e.g.
   
-      % git clone https://github.com/wannier-utils-dev/cif2qewan
+     % git clone https://github.com/wannier-utils-dev/cif2qewan
   
   
   4. Edit cif2cell_path and pseudo_dir in cif2qewan.py.
   
   5. Run.
-      % python cif2qewan.py **.cif
+
+     % python cif2qewan.py **.cif
   
-      % pw.x < scf.in > scf.out
+     % pw.x < scf.in > scf.out
       
-      % pw.x < nscf.in > nscf.out
+     % pw.x < nscf.in > nscf.out
       
-      % wannier90.x -pp pwscf
+     % wannier90.x -pp pwscf
       
-      % pw2wannier90.x < pw2wan.in
+     % pw2wannier90.x < pw2wan.in
 
   6. Edit dis_froz_max in pwscf.win. Recommended value is around EF+1eV ~ EF+3eV.
 
   7. Wannierize.
   
-      % wannier90.x pwscf
+     % wannier90.x pwscf
 
 
 ## Compare band structures of DFT and wannier90 #####
