@@ -205,10 +205,14 @@ class qe_wannier_in:
     def convert2band(self):
         self.control_str = self.control_str.replace("'nscf'", "'bands'")
         self.kpoints_str = "K_POINTS {crystal_b}\n"
-        self.kpoints_str += "{}\n".format(len(self.tick_labels))
+        self.kpoints_str += "{}\n".format(len(self.tick_labels) - self.tick_labels.count(""))
         for i in range(len(self.tick_labels)):
-            kstr = "{:15.10f} {:15.10f} {:15.10f}    {}    !  {}\n".format(self.tick_locs[i][0], self.tick_locs[i][1], self.tick_locs[i][2], 20, self.tick_labels[i])
-            self.kpoints_str += kstr
+            if(i != (len(self.tick_labels)-1) and self.tick_labels[i+1] == ""):
+                kstr = "{:15.10f} {:15.10f} {:15.10f}     {}    !  {}\n".format(self.tick_locs[i][0], self.tick_locs[i][1], self.tick_locs[i][2], 0, self.tick_labels[i])
+                self.kpoints_str += kstr
+            elif(self.tick_labels[i] != ""):
+                kstr = "{:15.10f} {:15.10f} {:15.10f}    {}    !  {}\n".format(self.tick_locs[i][0], self.tick_locs[i][1], self.tick_locs[i][2], 20, self.tick_labels[i])
+                self.kpoints_str += kstr
 
     def calc_bands_seekpath(self):
         try:
@@ -240,8 +244,12 @@ class qe_wannier_in:
             if(label == ""): continue
             label = label.replace("GAMMA","G")
             label = label.replace("SIGMA","S")
-            self.tick_labels.append(label)
-            self.tick_locs.append(self.kpoints_rel[i])
+            if(i != 0 and kpoints_labels[i-1] != ""):
+                self.tick_labels.extend(["", label])
+                self.tick_locs.extend([np.array([0.0, 0.0, 0.0]), self.kpoints_rel[i]])
+            else:
+                self.tick_labels.append(label)
+                self.tick_locs.append(self.kpoints_rel[i])
 
     def write_pwscf_in(self, pwscf_in):
         fp = open(pwscf_in, "w")
@@ -325,7 +333,8 @@ class qe_wannier_in:
 
         fp.write("Begin Kpoint_Path\n")
         for i in range(len(self.tick_labels) - 1):
-            fp.write("{0} {1[0]:14.10f} {1[1]:14.10f} {1[2]:14.10f}  {2} {3[0]:14.10f} {3[1]:14.10f} {3[2]:14.10f}\n".format(self.tick_labels[i], self.tick_locs[i], self.tick_labels[i+1], self.tick_locs[i+1]))
+            if(self.tick_labels[i] != "" and self.tick_labels[i+1] != ""):
+                fp.write("{0} {1[0]:14.10f} {1[1]:14.10f} {1[2]:14.10f}  {2} {3[0]:14.10f} {3[1]:14.10f} {3[2]:14.10f}\n".format(self.tick_labels[i], self.tick_locs[i], self.tick_labels[i+1], self.tick_locs[i+1]))
         fp.write("End Kpoint_Path\n")
 
         fp.close()
