@@ -392,17 +392,17 @@ class pseudo_list:
     def read_pp_info(self, pp_file_name):
         import pandas as pd          
         csv_input = pd.read_csv(pp_file_name, sep=",")
-        print(csv_input)
+        #print(csv_input)
         dict_pp = {}
         for value in csv_input.values:
             if value[1] is np.nan:
                 dict_pp[value[0]] = None
             else:
                 if value[2] is np.nan:
-                    value[2] = 0.0
+                    value[2] = 0
                 elif value[3] is np.nan:
                     value[3] = ""
-                dict_pp[value[0]]=(value[1], value[2], value[3])
+                dict_pp[value[0]]=(value[1], int(value[2]), value[3])
         return dict_pp
 
 if __name__ == '__main__':
