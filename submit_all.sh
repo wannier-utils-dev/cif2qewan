@@ -4,8 +4,9 @@ MPI_PREFIX="mpirun -n 16"
 ESPRESSO_DIR=/path/to/espresso_dir
 WANNIER90_DIR=/path/to/wannier90_dir
 CIF2QEWAN_DIR=/path/to/cif2qewan_dir
+TOML_FILE=/path/to/cif2qewan.toml
 
-python $CIF2QEWAN_DIR/cif2qewan.py *.cif
+python $CIF2QEWAN_DIR/cif2qewan.py *.cif $TOML_FILE
 
 $MPI_PREFIX $ESPRESSO_DIR/bin/pw.x < scf.in > scf.out
 cp -r work check_wannier/
