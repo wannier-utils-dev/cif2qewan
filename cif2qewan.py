@@ -335,6 +335,18 @@ class qe_wannier_in:
                     fp.write("{0} {1[0]:14.10f} {1[1]:14.10f} {1[2]:14.10f}  {2} {3[0]:14.10f} {3[1]:14.10f} {3[2]:14.10f}\n".format(self.tick_labels[i], self.tick_locs[i], self.tick_labels[i+1], self.tick_locs[i+1]))
             fp.write("End Kpoint_Path\n")
 
+    def write_proj(self, proj_in):
+        with open(proj_in, "w") as fp:
+            fp.write("&projwfc\n")
+            fp.write(" prefix = 'pwscf'\n")
+            fp.write(" outdir = './work'\n")
+            fp.write(" kresolveddos = .false.\n")
+            fp.write(" degauss = {:0.3f}\n".format(self.degauss))
+            fp.write(" Emax = \n")
+            fp.write(" Emin = \n")
+            fp.write("/\n")
+
+
 class pseudo_wannier:
     """
     pseudo potential including information for wannier
@@ -424,6 +436,8 @@ if __name__ == '__main__':
     qe_wan.write_pw2wan("pw2wan.in")
 
     qe_wan.write_wannier("pwscf.win")
+
+    qe_wan.write_proj("proj.in")
 
     if not os.path.exists("check_wannier"): os.mkdir("check_wannier")
     qe_wan.shift_k_nscf()
