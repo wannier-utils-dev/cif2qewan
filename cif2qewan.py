@@ -208,38 +208,42 @@ class qe_wannier_in:
         self.control_str = self.control_str.replace("'nscf'", "'bands'")
         self.kpoints_str = "K_POINTS {crystal_b}\n"
         self.kpoints_str += "{}\n".format(len(self.tick_labels) - self.tick_labels.count(""))
+        j = 0
         for i in range(len(self.tick_labels)):
-            if(i != (len(self.tick_labels)-1) and self.tick_labels[i+1] == ""):
-                kstr = "{:15.10f} {:15.10f} {:15.10f}     {}    !  {}\n".format(self.tick_locs[i][0], self.tick_locs[i][1], self.tick_locs[i][2], 0, self.tick_labels[i])
+            if(self.tick_labels[i] != ""):
+                kstr = "{:15.10f} {:15.10f} {:15.10f}  {:>4d}    !  {}\n".format(self.tick_locs[i][0], self.tick_locs[i][1], self.tick_locs[i][2], self.band_nks[j], self.tick_labels[i])
                 self.kpoints_str += kstr
-            elif(self.tick_labels[i] != ""):
-                kstr = "{:15.10f} {:15.10f} {:15.10f}    {}    !  {}\n".format(self.tick_locs[i][0], self.tick_locs[i][1], self.tick_locs[i][2], 20, self.tick_labels[i])
-                self.kpoints_str += kstr
+                j += 1
 
     def calc_bands_seekpath(self):
         try:
             import seekpath
+            if seekpath.__version__ < '2.1.0':
+                raise ImportError
 
         except ImportError:
-            print("Failed to import seek path. Simple kpath is used instead.")
+            print("Failed to import seekpath (>= 2.1.0). Simple kpath is used instead.")
             self.tick_labels = ["R", "G", "X", "M", "G"]
             self.tick_locs = [[0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [0.5, 0.0, 0.0], [0.5, 0.5, 0.0], [0.0, 0.0, 0.0]]
+            self.band_nks = np.full(len(self.tick_labels), 20)
             return
 
         cell = np.array([self.a1, self.a2, self.a3])
         pos = self.atom_pos_list
         z = [Element(s).Z for s in self.atom_list]
-        kpath = seekpath.getpaths.get_explicit_k_path([cell, pos, z])
+        #kpath = seekpath.getpaths.get_explicit_k_path([cell, pos, z])
+        kpath = seekpath.getpaths.get_explicit_k_path_orig_cell([cell, pos, z])
 
-        new_b = kpath["reciprocal_primitive_lattice"]
-        m = np.matmul(new_b,cell.T) / (2 * np.pi)
-        self.kpoints_rel = [ np.matmul(k, m) for k in kpath["explicit_kpoints_rel"] ]
-
+        #new_b = kpath["reciprocal_primitive_lattice"]
+        #m = np.matmul(new_b,cell.T) / (2 * np.pi)
+        #self.kpoints_rel = [ np.matmul(k, m) for k in kpath["explicit_kpoints_rel"] ]
+        self.kpoints_rel = kpath["explicit_kpoints_rel"]
         kpoints_labels = kpath["explicit_kpoints_labels"]
 
+        hsp_indices = []
+        discon_hsps = []
         self.tick_locs = []
         self.tick_labels = []
-
         for i, label in enumerate(kpoints_labels):
             if(label == ""): continue
             label = label.replace("GAMMA","G")
@@ -247,9 +251,25 @@ class qe_wannier_in:
             if(i != 0 and kpoints_labels[i-1] != ""):
                 self.tick_labels.extend(["", label])
                 self.tick_locs.extend([np.array([0.0, 0.0, 0.0]), self.kpoints_rel[i]])
+                discon_hsps.append(i)
             else:
                 self.tick_labels.append(label)
                 self.tick_locs.append(self.kpoints_rel[i])
+            hsp_indices.append(i)
+
+        kdistances = []
+        kpoints_abs = kpath["explicit_kpoints_abs"]
+        for i in range(len(hsp_indices)-1):
+            s = hsp_indices[i]
+            e = hsp_indices[i+1]
+            if e in discon_hsps:
+                kdistances.append(0)
+            else:
+                kdistances.append(np.linalg.norm(kpoints_abs[e] - kpoints_abs[s]))
+        kdistances = np.array(kdistances)
+        min_distance = np.min(kdistances[np.nonzero(kdistances)])
+        band_nks = [int(10 * d / min_distance) for d in kdistances]
+        self.band_nks = np.append(band_nks, 10)
 
     def write_pwscf_in(self, pwscf_in):
         with open(pwscf_in, "w") as fp:
