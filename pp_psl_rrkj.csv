@@ -11,13 +11,13 @@ F,F.pbe-n-rrkjus_psl.0.1,1,p,48.0,316.0
 Ne,Ne.pbe-n-rrkjus_psl.1.0.0,1,p,54.0,264.0
 Na,Na.pbe-spn-rrkjus_psl.0.2,4,s,41.0,163.0
 Mg,Mg.pbe-n-rrkjus_psl.0.3.0,0,s,13.0,87.0
-Al,Al.pbe-n-rrkjus_psl.0.2.2,0,sp,36.0,145.0
+Al,Al.pbe-n-rrkjus_psl.0.1,0,sp,36.0,145.0
 Si,Si.pbe-n-rrkjus_psl.0.1,0,sp,38.0,151.0
 P,P.pbe-n-rrkjus_psl.0.1,1,p,17.0,79.0
 S,S.pbe-n-rrkjus_psl.0.1,1,p,17.0,77.0
 Cl,Cl.pbe-n-rrkjus_psl.0.3.0,1,p,36.0,146.0
 Ar,Ar.pbe-n-rrkjus_psl.0.3.0,1,p,26.0,225.0
-K,K.pbe-spn-rrkjus_psl.0.2.3,4,,34.0,366.0
+K,K.pbe-spn-rrkjus_psl.0.2.3,4,s,34.0,366.0
 Ca,Ca.pbe-spn-rrkjus_psl.0.2.3,4,s,36.0,170.0
 Sc,Sc.pbe-spn-rrkjus_psl.0.2.3,4,sd,46.0,477.0
 Ti,Ti.pbe-spn-rrkjus_psl.0.3.1,4,spd,50.0,738.0

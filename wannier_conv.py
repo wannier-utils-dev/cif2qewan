@@ -3,6 +3,7 @@
 import itertools
 import numpy as np
 import os
+import argparse
 
 
 class Hamiltonian(object):
@@ -118,7 +119,7 @@ class Nscfout:
         with open(nscf_out, "r") as fp:
             lines = fp.readlines()
         for i, line in enumerate(lines):
-            if "Fermi energy" in line:
+            if "the Fermi energy" in line:
                 self.ef = float(line[26:35])
             if "number of Kohn-Sham" in line:
                 self.nbnd = int(line[35:])
@@ -138,7 +139,19 @@ class Nscfout:
             kp_str = "k =%7.4f%7.4f%7.4f" % tuple(self.kp_cart[j])
             for i, line in enumerate(lines):
                 if kp_str in line:
-                    self.energy[j, :] = [float(x) for x in ''.join(lines[i+2:i+2+nline]).split()]
+                    tmp_list = ''.join(lines[i+2:i+2+nline]).split()
+                    ene_list = []
+                    for l_tmp in tmp_list:
+                        len_max = 8
+                        if len(l_tmp) > len_max:
+                            #print(len(l_tmp),len(l_tmp)//(len_max+1))
+                            [ene_list.append(l_tmp[s*(len_max+1):(s+1)*(len_max+1)]) for s in range(len(l_tmp)//(len_max+1)) ]
+                        else:
+                            ene_list.append(l_tmp)
+
+                    #print(ene_list)
+                    #self.energy[j, :] = [float(x) for x in ''.join(lines[i+2:i+2+nline]).split()]
+                    self.energy[j, :] = [float(x) for x in ene_list]
 
 
 def get_nexclude(pwscf_win):
@@ -152,13 +165,23 @@ def get_nexclude(pwscf_win):
 
 
 if __name__ == "__main__":
-    nscf_data = Nscfout("./check_wannier/nscf.out")
+    parser = argparse.ArgumentParser(description="check accuracy of Wannier")
+    parser.add_argument("-e", type=float, default=0.0, dest="emax", help="emax")
+    parser.add_argument("-o", dest="odir")
+    parser.add_argument("-i", default="./check_wannier/nscf.out", dest="nscf_file")
+
+    args = parser.parse_args()
+
+    # Energy window for check
+    emin = -200.0
+    emax = args.emax #0.0
+    output_dir = args.odir
+    nscf_file = args.nscf_file
+
+    nscf_data = Nscfout(nscf_file)
     nexclude = get_nexclude("./pwscf.win")
     h = Hamiltonian("./pwscf_hr.dat")
 
-    # Energy window for check
-    emin = -100.0
-    emax = 0.0
 
     # calculate energy difference
     delta_sum = 0
@@ -180,7 +203,8 @@ if __name__ == "__main__":
         delta_max = max([delta_max, np.max(ediff)])
 
     # output the results
-    with open("check_wannier/CONV", "w") as fp:
+    #with open("check_wannier/CONV", "w") as fp:
+    with open(os.path.join(output_dir, "CONV_{}".format(emax)), "w") as fp:
         fp.write("# energy window [{:>5.2f}:{:>5.2f}]\n".format(emin, emax))
         if nek > 0:
             fp.write("average diff = {:>15.8f}\n".format(np.sqrt(delta_sum/nek)))
