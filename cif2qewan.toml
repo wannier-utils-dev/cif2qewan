@@ -1,8 +1,29 @@
+# CIF to Quantum ESPRESSO Wannier90 Configuration File
+# This file contains all the necessary configuration parameters for
+# generating Quantum ESPRESSO and Wannier90 input files from CIF structures.
+
+# Path to the cif2cell executable
+# cif2cell is used to convert CIF files to Quantum ESPRESSO input format
 cif2cell_path = "path/to/cif2cell_path"
+
+# Directory containing pseudopotential files
+# This should point to your Quantum ESPRESSO pseudopotential directory
 pseudo_dir = "/path/to/pseudo_dir"
+
+# Path to the pseudopotential list CSV file
+# This file contains information about available pseudopotentials
 pp_list_path = "/path/to/pp_list"
+
+# K-point resolution for SCF calculations (in 1/Å)
+# Smaller values give denser k-point meshes
 scf_k_resolution = 0.15
+
+# Gaussian smearing parameter (in Ry)
+# Used for metallic systems to improve convergence
 degauss = 0.01
 
+# pw2wannier90 interface configuration
 [pw2wan]
+# Whether to write UNK files for Wannier90
+# Set to ".true." to enable, ".false." to disable
 write_unk = ".true."

@@ -1,0 +1,160 @@
+# Python files
+get_cif.py
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Quantum ESPRESSO files
+*.out
+*.xml
+*.dat
+*.gnu
+*.win
+*.win_*
+*.mmn
+*.amn
+*.eig
+*.chk
+*.wout
+*.wout_*
+*.hr
+*.tb
+*.unk
+*.xsf
+*.cube
+work/
+tmp/
+*.tmp
+
+# Wannier90 files
+*.wout
+*.wout_*
+*.chk
+*.chk_*
+*.mmn
+*.amn
+*.eig
+*.hr
+*.tb
+*.unk
+*.xsf
+*.cube
+*.wfc
+*.wfc_*
+
+# CIF files (if they are large or generated)
+*.cif
+
+# Materials Project downloads
+mpall*/
+
+# Output directories
+band/
+check_wannier/
+plots/
+output/
+
+# Log files
+*.log
+*.err
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
