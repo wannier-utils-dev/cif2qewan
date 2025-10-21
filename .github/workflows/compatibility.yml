@@ -41,11 +41,7 @@ jobs:
         python -c "import wannier_conv; print('wannier_conv import successful')"
         
         # Test configuration loading
-        python -c "
-        import toml
-        config = toml.load('examples/PseudoDojo/Fe/input/cif2qewan.toml')
-        print('Config loading successful')
-        "
+        python -c "import toml; config = toml.load('examples/PseudoDojo/Fe/input/cif2qewan.toml'); print('Config loading successful')"
         
         # Run fast tests
         python run_tests.py --type fast

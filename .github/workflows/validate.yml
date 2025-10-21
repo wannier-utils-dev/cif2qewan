@@ -94,12 +94,7 @@ jobs:
         # Check TOML files
         for toml_file in examples/*/Fe/input/cif2qewan.toml; do
           if [ -f "$toml_file" ]; then
-            python -c "
-            import toml
-            config = toml.load('$toml_file')
-            print(f'✓ $toml_file is valid TOML')
-            print(f'  Keys: {list(config.keys())}')
-            "
+            python -c "import toml; config = toml.load('$toml_file'); print(f'✓ $toml_file is valid TOML'); print(f'  Keys: {list(config.keys())}')"
           fi
         done
         
@@ -115,11 +110,6 @@ jobs:
         python -m py_compile wannier_conv.py
         
         # Check package modules
-        python -c "
-        import cif2qewan
-        import band_comp
-        import wannier_conv
-        print('✓ All modules compile successfully')
-        "
+        python -c "import cif2qewan; import band_comp; import wannier_conv; print('✓ All modules compile successfully')"
         
         echo "Python code validation passed"
