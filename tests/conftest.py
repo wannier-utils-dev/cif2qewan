@@ -6,10 +6,11 @@ This module provides common fixtures and configuration for all tests.
 """
 
 import os
-import tempfile
-import pytest
 import shutil
+import tempfile
 from pathlib import Path
+
+import pytest
 
 
 @pytest.fixture
@@ -41,7 +42,7 @@ _atom_site_fract_y
 _atom_site_fract_z
 Fe1 Fe 0.0 0.0 0.0
 """
-    with open(cif_file, 'w') as f:
+    with open(cif_file, "w") as f:
         f.write(cif_content)
     return cif_file
 
@@ -59,7 +60,7 @@ degauss = 0.01
 [pw2wan]
 write_unk = ".true."
 """
-    with open(toml_file, 'w') as f:
+    with open(toml_file, "w") as f:
         f.write(toml_content)
     return toml_file
 
@@ -72,7 +73,7 @@ def example_csv_file(temp_dir):
 Fe,Fe.pbe-n-rrkjus_psl.1.0.0.UPF,0,dsp,40.0,200.0
 O,O.pbe-n-rrkjus_psl.1.0.0.UPF,0,sp,40.0,200.0
 """
-    with open(csv_file, 'w') as f:
+    with open(csv_file, "w") as f:
         f.write(csv_content)
     return csv_file
 

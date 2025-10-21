@@ -7,8 +7,10 @@ This script handles the installation and distribution of the cif2qewan package.
 It uses setuptools for building and installing the package.
 """
 
-from setuptools import setup, find_packages
 import os
+
+from setuptools import find_packages, setup
+
 
 # Read the README file for long description
 def read_readme():
@@ -19,18 +21,20 @@ def read_readme():
             return f.read()
     return "A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 input files from CIF structures"
 
+
 # Read requirements from pyproject.toml or create minimal requirements
 def read_requirements():
     """Read requirements from pyproject.toml or create minimal requirements."""
     requirements = [
         "numpy>=1.19.0",
-        "pandas>=1.3.0", 
+        "pandas>=1.3.0",
         "pymatgen>=2022.0.0",
         "toml>=0.10.0",
         "docopt>=0.6.0",
         "matplotlib>=3.3.0",
     ]
     return requirements
+
 
 if __name__ == "__main__":
     setup(
@@ -52,7 +56,7 @@ if __name__ == "__main__":
         package_data={
             "cif2qewan": [
                 "*.toml",
-                "*.csv", 
+                "*.csv",
                 "*.sh",
             ],
         },
@@ -80,7 +84,7 @@ if __name__ == "__main__":
         entry_points={
             "console_scripts": [
                 "cif2qewan=cif2qewan.cif2qewan:main",
-                "band_comp=cif2qewan.band_comp:main", 
+                "band_comp=cif2qewan.band_comp:main",
                 "wannier_conv=cif2qewan.wannier_conv:main",
             ],
         },
@@ -103,7 +107,7 @@ if __name__ == "__main__":
         keywords=[
             "quantum-espresso",
             "wannier90",
-            "dft", 
+            "dft",
             "band-structure",
             "cif",
             "materials-science",
