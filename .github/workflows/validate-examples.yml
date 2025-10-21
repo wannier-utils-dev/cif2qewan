@@ -1,0 +1,51 @@
+name: Validate Examples
+
+on:
+  push:
+    branches: [ main, develop, setup-pip-install ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate-examples:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+        pip install -e .
+    
+    - name: Validate PseudoDojo Fe example
+      run: |
+        cd examples/PseudoDojo/Fe
+        # Check that input files exist and are valid
+        ls -la input/
+        python -c "import toml; config = toml.load('input/cif2qewan.toml'); print('PseudoDojo config valid')"
+        # Test that the command can be imported
+        python -c "import cif2qewan; print('cif2qewan imported successfully')"
+    
+    - name: Validate PSLibrary Fe example
+      run: |
+        cd examples/PSLibrary/Fe
+        # Check that input files exist and are valid
+        ls -la input/
+        python -c "import toml; config = toml.load('input/cif2qewan.toml'); print('PSLibrary config valid')"
+    
+    - name: Test example README files
+      run: |
+        # Check that README files exist and are not empty
+        test -f examples/PseudoDojo/Fe/README.md
+        test -f examples/PSLibrary/Fe/README.md
+        test -s examples/PseudoDojo/Fe/README.md
+        test -s examples/PSLibrary/Fe/README.md
+        echo "README files are valid"

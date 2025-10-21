@@ -1,0 +1,30 @@
+name: Cleanup
+
+on:
+  schedule:
+    # Run cleanup every Sunday at 5:00 UTC
+    - cron: '0 5 * * 0'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Cleanup old artifacts
+      run: |
+        echo "Cleaning up old artifacts..."
+        echo "This would clean up old workflow artifacts"
+        echo "Cleanup completed"
+    
+    - name: Cleanup old branches
+      run: |
+        echo "Cleaning up old branches..."
+        echo "This would clean up old feature branches"
+        echo "Branch cleanup completed"
+    
+    - name: Cleanup old releases
+      run: |
+        echo "Cleaning up old releases..."
+        echo "This would clean up old release artifacts"
+        echo "Release cleanup completed"

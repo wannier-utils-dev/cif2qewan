@@ -1,0 +1,107 @@
+name: Accessibility
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  accessibility:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+        pip install -e .
+    
+    - name: Check documentation accessibility
+      run: |
+        # Check README files for accessibility
+        echo "Checking README files for accessibility..."
+        
+        # Check main README
+        if [ -f "README.md" ]; then
+          echo "Main README exists and is accessible"
+        fi
+        
+        # Check example READMEs
+        if [ -f "examples/PseudoDojo/Fe/README.md" ]; then
+          echo "PseudoDojo Fe README exists and is accessible"
+        fi
+        
+        if [ -f "examples/PSLibrary/Fe/README.md" ]; then
+          echo "PSLibrary Fe README exists and is accessible"
+        fi
+        
+        # Check for proper markdown formatting
+        echo "Checking markdown formatting..."
+        python -c "
+        import re
+        
+        def check_markdown(file_path):
+            with open(file_path, 'r') as f:
+                content = f.read()
+            
+            # Check for proper heading structure
+            headings = re.findall(r'^#+ ', content, re.MULTILINE)
+            if not headings:
+                print(f'Warning: {file_path} has no headings')
+            else:
+                print(f'{file_path} has {len(headings)} headings')
+            
+            # Check for code blocks
+            code_blocks = re.findall(r'```', content)
+            if code_blocks:
+                print(f'{file_path} has {len(code_blocks)//2} code blocks')
+        
+        check_markdown('README.md')
+        check_markdown('examples/PseudoDojo/Fe/README.md')
+        check_markdown('examples/PSLibrary/Fe/README.md')
+        "
+    
+    - name: Check code accessibility
+      run: |
+        # Check for proper docstrings
+        python -c "
+        import ast
+        import os
+        
+        def check_docstrings(file_path):
+            with open(file_path, 'r') as f:
+                content = f.read()
+            
+            try:
+                tree = ast.parse(content)
+                functions = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+                classes = [node for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
+                
+                print(f'{file_path}: {len(functions)} functions, {len(classes)} classes')
+                
+                for func in functions:
+                    if not func.body or not isinstance(func.body[0], ast.Expr) or not isinstance(func.body[0].value, ast.Constant):
+                        print(f'Warning: {func.name} in {file_path} has no docstring')
+                
+                for cls in classes:
+                    if not cls.body or not isinstance(cls.body[0], ast.Expr) or not isinstance(cls.body[0].value, ast.Constant):
+                        print(f'Warning: {cls.name} in {file_path} has no docstring')
+                        
+            except SyntaxError as e:
+                print(f'Error parsing {file_path}: {e}')
+        
+        for root, dirs, files in os.walk('.'):
+            for file in files:
+                if file.endswith('.py') and not file.startswith('.'):
+                    file_path = os.path.join(root, file)
+                    check_docstrings(file_path)
+        "

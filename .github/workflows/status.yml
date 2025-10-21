@@ -1,0 +1,47 @@
+name: Status
+
+on:
+  workflow_run:
+    workflows: ["CI", "Test Matrix", "Security", "Lint", "Coverage", "Quality", "Integration", "Validate", "Check"]
+    types: [completed]
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check workflow status
+      run: |
+        echo "Workflow: ${{ github.event.workflow_run.name }}"
+        echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+        echo "Status: ${{ github.event.workflow_run.status }}"
+        echo "URL: ${{ github.event.workflow_run.html_url }}"
+        
+        if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+          echo "✅ Workflow completed successfully"
+        else
+          echo "❌ Workflow failed"
+        fi
+    
+    - name: Generate status report
+      run: |
+        echo "# Workflow Status Report" > status-report.md
+        echo "" >> status-report.md
+        echo "## Workflow Details" >> status-report.md
+        echo "- **Name**: ${{ github.event.workflow_run.name }}" >> status-report.md
+        echo "- **Conclusion**: ${{ github.event.workflow_run.conclusion }}" >> status-report.md
+        echo "- **Status**: ${{ github.event.workflow_run.status }}" >> status-report.md
+        echo "- **URL**: ${{ github.event.workflow_run.html_url }}" >> status-report.md
+        echo "" >> status-report.md
+        echo "## Status" >> status-report.md
+        if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+          echo "✅ **SUCCESS**" >> status-report.md
+        else
+          echo "❌ **FAILED**" >> status-report.md
+        fi
+    
+    - name: Upload status report
+      uses: actions/upload-artifact@v3
+      with:
+        name: status-report
+        path: status-report.md

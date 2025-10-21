@@ -1,0 +1,44 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
+        pip install -r requirements.txt
+        pip install -e .
+    
+    - name: Build documentation
+      run: |
+        # Create basic Sphinx documentation structure if it doesn't exist
+        if [ ! -d "docs" ]; then
+          mkdir -p docs
+          sphinx-quickstart -q -p cif2qewan -a "cif2qewan team" -v 1.0.0 -r 1.0.0 -l en --ext-autodoc --ext-viewcode --ext-githubpages docs/
+        fi
+        
+        # Build the documentation
+        cd docs
+        make html
+    
+    - name: Upload documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: docs/_build/html/

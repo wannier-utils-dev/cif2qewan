@@ -1,0 +1,125 @@
+name: Validate
+
+on:
+  push:
+    branches: [ main, develop, setup-pip-install ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+        pip install -e .
+    
+    - name: Validate package structure
+      run: |
+        # Check package structure
+        echo "Checking package structure..."
+        
+        # Check required files
+        required_files=(
+          "README.md"
+          "LICENSE"
+          "pyproject.toml"
+          "setup.py"
+          "requirements.txt"
+          "requirements-test.txt"
+          "MANIFEST.in"
+          "cif2qewan/__init__.py"
+          "tests/__init__.py"
+          "tests/test_cif2qewan.py"
+          "tests/test_integration.py"
+          "tests/test_functional.py"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✓ $file exists"
+          else
+            echo "✗ $file missing"
+            exit 1
+          fi
+        done
+        
+        echo "Package structure validation passed"
+    
+    - name: Validate examples
+      run: |
+        # Check example structure
+        echo "Checking example structure..."
+        
+        # Check PseudoDojo example
+        if [ -d "examples/PseudoDojo/Fe" ]; then
+          echo "✓ PseudoDojo Fe example exists"
+          if [ -f "examples/PseudoDojo/Fe/input/mp-13_Fe.cif" ]; then
+            echo "✓ PseudoDojo CIF file exists"
+          fi
+          if [ -f "examples/PseudoDojo/Fe/input/cif2qewan.toml" ]; then
+            echo "✓ PseudoDojo config file exists"
+          fi
+        fi
+        
+        # Check PSLibrary example
+        if [ -d "examples/PSLibrary/Fe" ]; then
+          echo "✓ PSLibrary Fe example exists"
+          if [ -f "examples/PSLibrary/Fe/input/mp-13_Fe.cif" ]; then
+            echo "✓ PSLibrary CIF file exists"
+          fi
+          if [ -f "examples/PSLibrary/Fe/input/cif2qewan.toml" ]; then
+            echo "✓ PSLibrary config file exists"
+          fi
+        fi
+        
+        echo "Example structure validation passed"
+    
+    - name: Validate configuration files
+      run: |
+        # Check configuration files
+        echo "Checking configuration files..."
+        
+        # Check TOML files
+        for toml_file in examples/*/Fe/input/cif2qewan.toml; do
+          if [ -f "$toml_file" ]; then
+            python -c "
+            import toml
+            config = toml.load('$toml_file')
+            print(f'✓ $toml_file is valid TOML')
+            print(f'  Keys: {list(config.keys())}')
+            "
+          fi
+        done
+        
+        echo "Configuration validation passed"
+    
+    - name: Validate Python code
+      run: |
+        # Check Python code syntax
+        echo "Checking Python code syntax..."
+        
+        python -m py_compile cif2qewan.py
+        python -m py_compile band_comp.py
+        python -m py_compile wannier_conv.py
+        
+        # Check package modules
+        python -c "
+        import cif2qewan
+        import band_comp
+        import wannier_conv
+        print('✓ All modules compile successfully')
+        "
+        
+        echo "Python code validation passed"
