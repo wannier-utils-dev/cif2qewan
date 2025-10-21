@@ -941,12 +941,13 @@ class pseudo_list:
         return pp_dict
 
 
-if __name__ == "__main__":
+def main():
     """
-    Main execution block for CIF to Quantum ESPRESSO Wannier90 converter.
+    Main function for cif2qewan command-line interface.
     
-    This script generates all necessary input files for a complete
-    Quantum ESPRESSO + Wannier90 calculation workflow from a CIF file.
+    This function provides the entry point for the cif2qewan command
+    and handles the complete workflow from CIF file to Quantum ESPRESSO
+    and Wannier90 input files.
     """
     # Parse command-line arguments
     args = docopt(__doc__)
@@ -986,3 +987,13 @@ if __name__ == "__main__":
     qe_wan.write_band_in("band/band.in")
     qe_wan.write_proj("band/proj.in")
     qe_wan.write_pp("band/pp.in")
+
+
+if __name__ == "__main__":
+    """
+    Main execution block for CIF to Quantum ESPRESSO Wannier90 converter.
+    
+    This script generates all necessary input files for a complete
+    Quantum ESPRESSO + Wannier90 calculation workflow from a CIF file.
+    """
+    main()

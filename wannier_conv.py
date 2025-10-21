@@ -311,13 +311,12 @@ def get_nexclude(pwscf_win: str) -> int:
     return nexclude
 
 
-if __name__ == "__main__":
+def main():
     """
-    Main execution block for Wannier90 convergence checker.
+    Main function for wannier_conv command-line interface.
     
-    This script compares the interpolated band structure from Wannier90
-    with the original DFT band structure to check the accuracy of the
-    Wannier interpolation.
+    This function provides the entry point for the wannier_conv command
+    and handles the convergence checking workflow.
     """
     # Set up command-line argument parser
     parser = argparse.ArgumentParser(
@@ -417,3 +416,14 @@ Examples:
         print(f"Maximum difference: {np.sqrt(delta_max):.6f} eV")
     else:
         print("No bands found in the specified energy window")
+
+
+if __name__ == "__main__":
+    """
+    Main execution block for Wannier90 convergence checker.
+    
+    This script compares the interpolated band structure from Wannier90
+    with the original DFT band structure to check the accuracy of the
+    Wannier interpolation.
+    """
+    main()
