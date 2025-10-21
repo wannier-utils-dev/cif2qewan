@@ -11,16 +11,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-11, macos-12, windows-2019, windows-2022]
-        python-version: [3.8, 3.9, 3.10, 3.11]
+        os: [ubuntu-22.04, ubuntu-24.04, macos-12, macos-13, windows-2022]
+        python-version: [3.8, 3.9, '3.10', '3.11', '3.12']
         exclude:
           # Exclude some combinations to reduce CI time
-          - os: ubuntu-20.04
-            python-version: 3.11
-          - os: macos-11
+          - os: ubuntu-22.04
+            python-version: 3.12
+          - os: macos-12
             python-version: 3.8
-          - os: windows-2019
-            python-version: 3.11
+          - os: windows-2022
+            python-version: 3.8
 
     steps:
     - uses: actions/checkout@v4
