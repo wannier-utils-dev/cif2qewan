@@ -76,7 +76,6 @@ Changelog = "https://github.com/wannier-utils-dev/cif2qewan/blob/main/CHANGELOG.
 cif2qewan = "cif2qewan.cif2qewan:main"
 band_comp = "cif2qewan.band_comp:main"
 wannier_conv = "cif2qewan.wannier_conv:main"
-get_cif = "cif2qewan.get_cif:main"
 
 [tool.setuptools]
 packages = ["cif2qewan"]
