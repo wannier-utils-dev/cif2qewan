@@ -1,0 +1,24 @@
+# Include package data files
+include README.md
+include LICENSE
+include requirements.txt
+include pyproject.toml
+include setup.py
+include cif2qewan.toml
+include *.csv
+include *.sh
+
+# Include all Python files
+recursive-include cif2qewan *.py
+
+# Include configuration files
+recursive-include cif2qewan *.toml
+recursive-include cif2qewan *.csv
+recursive-include cif2qewan *.sh
+
+# Exclude test files from distribution
+recursive-exclude tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
+recursive-exclude * .git*
