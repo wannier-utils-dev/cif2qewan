@@ -3,7 +3,7 @@
 A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 input files from CIF (Crystallographic Information File) structures, with automated workflow management and band structure analysis capabilities.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 inp
 
 ### Prerequisites
 
-- Python 3.7 or higher
+- Python 3.9 or higher
 - Quantum ESPRESSO (QE)
 - Wannier90
 - cif2cell
