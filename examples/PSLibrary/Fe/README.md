@@ -362,20 +362,6 @@ Fe/
 - **Band structure files**: `band/` directory
 - **Convergence check files**: `check_wannier/` directory
 
-## References
-
-1. **Iron magnetic properties**: [Phys. Rev. B 13, 5188 (1976)](https://doi.org/10.1103/PhysRevB.13.5188)
-2. **PSLibrary pseudopotentials**: [Phys. Rev. B 41, 1227 (1990)](https://doi.org/10.1103/PhysRevB.41.1227)
-3. **Wannier90**: [J. Phys. Condens. Matter 30, 165901 (2018)](https://doi.org/10.1088/1361-648X/aab51b)
-4. **Quantum ESPRESSO**: [J. Phys. Condens. Matter 21, 395502 (2009)](https://doi.org/10.1088/0953-8984/21/39/395502)
-
-## Next Steps
-
-1. **Try other magnetic materials**: Ni, Co, Cr
-2. **Explore different pseudopotentials**: PBE, PBEsol, SCAN
-3. **Study magnetic anisotropy**: Different crystal orientations
-4. **Calculate transport properties**: Anomalous Hall effect, spin Hall effect
-
 ---
 
 For more examples and documentation, visit the [cif2qewan GitHub repository](https://github.com/wannier-utils-dev/cif2qewan).
