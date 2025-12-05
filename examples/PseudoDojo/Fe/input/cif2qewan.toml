@@ -1,6 +1,6 @@
-cif2cell_path = "/Users/k-yoshimi/miniconda3/bin/cif2cell"
-pseudo_dir = "/Users/k-yoshimi/Dropbox/PycharmProjects/cif2qewan"
-pp_list_path = "/Users/k-yoshimi/Dropbox/PycharmProjects/cif2qewan/nc-sr-05_pbe_standard_upf.csv"
+cif2cell_path = "/path/to/cif2cell"
+pseudo_dir = "/path/to/pseudopotentials"
+pp_list_path = "/path/to/nc-sr-05_pbe_standard_upf.csv"
 scf_k_resolution = 0.15
 degauss = 0.01
 

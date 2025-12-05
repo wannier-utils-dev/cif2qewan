@@ -1,8 +1,0 @@
-cif2cell_path = "/Users/k-yoshimi/miniconda3/bin/cif2cell"
-pseudo_dir = "/Users/k-yoshimi/Dropbox/PycharmProjects/cif2qewan"
-pp_list_path = "/Users/k-yoshimi/Dropbox/PycharmProjects/cif2qewan/nc-sr-05_pbe_standard_upf.csv"
-scf_k_resolution = 0.15
-degauss = 0.01
-
-[pw2wan]
-write_unk = ".true."
