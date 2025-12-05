@@ -43,7 +43,7 @@ A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 inp
 ### Python Dependencies
 
 ```bash
-pip install numpy pandas pymatgen toml docopt matplotlib
+pip install numpy pandas pymatgen toml docopt matplotlib seekpath
 ```
 
 ### Software Dependencies
@@ -95,9 +95,9 @@ write_unk = ".true."
 ./submit_all.sh
 
 # Or run step by step
-python cif2qewan.py structure.cif cif2qewan.toml
+cif2qewan structure.cif cif2qewan.toml   # or: python -m cif2qewan.cif2qewan structure.cif cif2qewan.toml
 # ... run QE and Wannier90 calculations ...
-python band_comp.py -o ./
+python -m cif2qewan.band_comp -o ./
 ```
 
 ## Configuration
@@ -131,13 +131,13 @@ O,O.pbe-n-rrkjus_psl.1.0.0.UPF,0,sp,40.0,200.0
 
 ```bash
 # Generate input files from CIF
-python cif2qewan.py structure.cif cif2qewan.toml
+cif2qewan structure.cif cif2qewan.toml
 
 # With spin-orbit coupling
-python cif2qewan.py structure.cif cif2qewan.toml --so
+cif2qewan structure.cif cif2qewan.toml --so
 
 # With magnetic calculations
-python cif2qewan.py structure.cif cif2qewan.toml --mag
+cif2qewan structure.cif cif2qewan.toml --mag
 ```
 
 ### Command Line Options
@@ -181,7 +181,7 @@ This script performs the following steps:
 
 ```bash
 # Step 1: Generate input files
-python cif2qewan.py structure.cif cif2qewan.toml
+cif2qewan structure.cif cif2qewan.toml
 
 # Step 2: Run SCF calculation
 mpirun -n 16 pw.x < scf.in > scf.out
@@ -212,7 +212,7 @@ mpirun -n 16 bands.x < band.in > band.out
 cd ..
 
 # Step 9: Compare band structures
-python band_comp.py -o ./
+python -m cif2qewan.band_comp -o ./
 ```
 
 ## Band Structure Analysis
@@ -227,7 +227,7 @@ mpirun -n 16 bands.x < band.in > band.out
 cd ..
 
 # Generate comparison plot
-python band_comp.py -o ./
+python -m cif2qewan.band_comp -o ./
 ```
 
 ### Output Files
@@ -277,7 +277,7 @@ The script calculates two convergence metrics:
 python get_cif.py  # Downloads magnetic materials
 
 # Generate input files
-python cif2qewan.py mp-13_Fe.cif cif2qewan.toml --mag
+cif2qewan mp-13_Fe.cif cif2qewan.toml --mag
 
 # Run calculations
 ./submit_all.sh
@@ -287,7 +287,7 @@ python cif2qewan.py mp-13_Fe.cif cif2qewan.toml --mag
 
 ```bash
 # Generate input with SOC
-python cif2qewan.py structure.cif cif2qewan.toml --so
+cif2qewan structure.cif cif2qewan.toml --so
 
 # Run calculations
 ./submit_all.sh
@@ -341,7 +341,7 @@ write_unk = ".false."
 
 ```bash
 # Run with verbose output
-python cif2qewan.py structure.cif cif2qewan.toml --verbose
+cif2qewan structure.cif cif2qewan.toml --verbose
 
 # Check intermediate files
 ls -la work/

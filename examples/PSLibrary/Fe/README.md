@@ -63,8 +63,8 @@ write_unk = ".true."
 # Generate input files with SOC and magnetic calculations
 cif2qewan input/mp-13_Fe.cif input/cif2qewan.toml --so --mag
 
-# Or using Python directly
-python cif2qewan.py input/mp-13_Fe.cif input/cif2qewan.toml --so --mag
+# Or using Python directly (works with a cloned repo or an installed package)
+python -m cif2qewan.cif2qewan input/mp-13_Fe.cif input/cif2qewan.toml --so --mag
 ```
 
 ## Directory Structure
@@ -246,14 +246,14 @@ cd ..
 cd check_wannier
 mpirun -n 16 pw.x < nscf.in > nscf.out
 cd ..
-python wannier_conv.py -e 5.0 -o ./ -i ./check_wannier/nscf.out
+python -m cif2qewan.wannier_conv -e 5.0 -o ./ -i ./check_wannier/nscf.out
 ```
 
 ### 8. Band Structure Comparison
 
 ```bash
 # Compare DFT and Wannier90 band structures
-python band_comp.py -o ./
+python -m cif2qewan.band_comp -o ./
 cd ..
 ```
 

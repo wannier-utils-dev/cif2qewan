@@ -4,6 +4,7 @@ include LICENSE
 include requirements.txt
 include pyproject.toml
 include setup.py
+include cif2qewan.py
 include cif2qewan.toml
 include *.csv
 include *.sh

@@ -5,6 +5,7 @@ pymatgen>=2022.0.0
 toml>=0.10.0
 docopt>=0.6.0
 matplotlib>=3.3.0
+seekpath>=2.1.0
 
 # Optional dependencies for development
 # pytest>=6.0

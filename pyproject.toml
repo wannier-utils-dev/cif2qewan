@@ -44,6 +44,7 @@ dependencies = [
     "toml>=0.10.0",
     "docopt>=0.6.0",
     "matplotlib>=3.3.0",
+    "seekpath>=2.1.0",
 ]
 
 [project.optional-dependencies]
@@ -79,6 +80,7 @@ wannier_conv = "cif2qewan.wannier_conv:main"
 
 [tool.setuptools]
 packages = ["cif2qewan"]
+py-modules = ["cif2qewan"]
 
 [tool.setuptools.package-data]
 cif2qewan = [

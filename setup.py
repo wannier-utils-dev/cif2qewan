@@ -32,6 +32,7 @@ def read_requirements():
         "toml>=0.10.0",
         "docopt>=0.6.0",
         "matplotlib>=3.3.0",
+        "seekpath>=2.1.0",
     ]
     return requirements
 
@@ -53,6 +54,7 @@ if __name__ == "__main__":
             "Issues": "https://github.com/wannier-utils-dev/cif2qewan/issues",
         },
         packages=find_packages(),
+        py_modules=["cif2qewan"],
         package_data={
             "cif2qewan": [
                 "*.toml",
