@@ -28,9 +28,7 @@ def _load_cli_module():
     """Load the actual CLI implementation from the installed module file."""
     script_path = Path(__file__).resolve().parent.parent / "cif2qewan.py"
     if not script_path.exists():
-        raise FileNotFoundError(
-            f"CLI module not found at expected path: {script_path}"
-        )
+        raise FileNotFoundError(f"CLI module not found at expected path: {script_path}")
 
     spec = spec_from_file_location("cif2qewan_cli", script_path)
     if spec is None or spec.loader is None:

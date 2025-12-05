@@ -34,7 +34,7 @@ pip install cif2qewan
 
 ### 2. Configure the system
 
-Edit `cif2qewan.toml` to match your system:
+Edit `input/cif2qewan.toml` to match your system:
 
 ```toml
 # Path to cif2cell executable
@@ -285,7 +285,7 @@ cd ..
    ```
    Error: Could not find pseudopotential Fe_sr.UPF
    ```
-   **Solution**: Check `pseudo_dir` path in `cif2qewan.toml`
+   **Solution**: Check `pseudo_dir` path in `input/cif2qewan.toml`
 
 2. **cif2cell not found**
    ```
@@ -336,7 +336,7 @@ Fe/
 
 ### Input Files (`input/` directory)
 - **`mp-13_Fe.cif`**: CIF structure file from Materials Project
-- **`cif2qewan.toml`**: Configuration file with paths and parameters
+- **`input/cif2qewan.toml`**: Configuration file with paths and parameters
 
 ### Output Files (`output/` directory)
 - **Quantum ESPRESSO inputs**: `scf.in`, `nscf.in`
