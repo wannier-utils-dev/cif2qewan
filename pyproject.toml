@@ -1,32 +1,29 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "cif2qewan"
-version = "1.0.0"
-description = "A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 input files from CIF structures"
+version = "0.1.0"
+description = "Generate Quantum ESPRESSO and Wannier90 input files from CIF files"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "GPL-2.0-only"}
 authors = [
-    {name = "cif2qewan developers", email = "cif2qewan@example.com"}
-]
-maintainers = [
-    {name = "cif2qewan developers", email = "cif2qewan@example.com"}
+    {name = "The cif2qewan developers"},
 ]
 keywords = [
     "quantum-espresso",
-    "wannier90", 
+    "wannier90",
     "dft",
     "band-structure",
     "cif",
     "materials-science",
-    "first-principles"
+    "first-principles",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -48,30 +45,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=6.0",
-    "pytest-cov>=2.0",
-    "flake8>=3.8",
-    "black>=21.0",
-    "isort>=5.0",
-    "mypy>=0.800",
-]
 test = [
     "pytest>=6.0",
-    "pytest-cov>=2.0",
-]
-docs = [
-    "sphinx>=4.0",
-    "sphinx-rtd-theme>=1.0",
-    "sphinx-autodoc-typehints>=1.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/wannier-utils-dev/cif2qewan"
-Documentation = "https://github.com/wannier-utils-dev/cif2qewan#readme"
 Repository = "https://github.com/wannier-utils-dev/cif2qewan.git"
 Issues = "https://github.com/wannier-utils-dev/cif2qewan/issues"
-Changelog = "https://github.com/wannier-utils-dev/cif2qewan/blob/main/CHANGELOG.md"
 
 [project.scripts]
 cif2qewan = "cif2qewan.cif2qewan:main"
@@ -80,71 +61,6 @@ wannier_conv = "cif2qewan.wannier_conv:main"
 
 [tool.setuptools]
 packages = ["cif2qewan"]
-py-modules = ["cif2qewan"]
 
 [tool.setuptools.package-data]
-cif2qewan = [
-    "*.toml",
-    "*.csv",
-    "*.sh",
-]
-
-[tool.setuptools_scm]
-write_to = "cif2qewan/_version.py"
-
-[tool.black]
-line-length = 88
-target-version = ['py39']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-line_length = 88
-known_first_party = ["cif2qewan"]
-
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "--cov=cif2qewan",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-]
+cif2qewan = ["*.csv"]
