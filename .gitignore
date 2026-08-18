@@ -158,3 +158,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+# Reference examples are tracked on purpose.
+# They are the regression reference for the generated inputs, so they must not
+# be caught by the Quantum ESPRESSO / Wannier90 output patterns above.
+!examples/
+!examples/**
