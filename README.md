@@ -2,8 +2,8 @@
 
 A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 input files from CIF (Crystallographic Information File) structures, with automated workflow management and band structure analysis capabilities.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![License: GPL v2](https://img.shields.io/badge/License-GPLv2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
 ## Table of Contents
 
@@ -27,14 +27,13 @@ A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 inp
 - **Convergence Checking**: Automated Wannier90 convergence analysis
 - **Workflow Automation**: Complete end-to-end workflow from CIF to analysis
 - **Spin-Orbit Coupling Support**: Handle SOC calculations and magnetic systems
-- **Materials Project Integration**: Download and process materials from Materials Project database
 - **Flexible Configuration**: TOML-based configuration system
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.7 or higher
+- Python 3.9 or higher
 - Quantum ESPRESSO (QE)
 - Wannier90
 - cif2cell
@@ -273,10 +272,7 @@ The script calculates two convergence metrics:
 ### Example 1: Iron (Fe) Crystal
 
 ```bash
-# Download Fe structure from Materials Project
-python get_cif.py  # Downloads magnetic materials
-
-# Generate input files
+# Generate input files (see examples/PSLibrary/Fe/ for the CIF file)
 python cif2qewan.py mp-13_Fe.cif cif2qewan.toml --mag
 
 # Run calculations
@@ -405,7 +401,7 @@ Please report issues on our [GitHub Issues](https://github.com/wannier-utils-dev
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v2 - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
