@@ -410,17 +410,18 @@ Examples:
     # Write convergence results
     output_file = os.path.join(output_dir, f"CONV_{emax}")
     with open(output_file, "w") as fp:
-        fp.write(f"# Energy window [{emin:>5.2f}:{emax:>5.2f}] eV\n")
+        # Keep the CONV format unchanged: existing scripts parse these lines.
+        fp.write(f"# energy window [{emin:>5.2f}:{emax:>5.2f}]\n")
 
         if nek > 0:
-            avg_diff = np.sqrt(delta_sum / nek)
-            fp.write(f"average diff = {avg_diff:>15.8f} eV\n")
+            avg_diff = np.sqrt(delta_sum/nek)
+            fp.write(f"average diff = {avg_diff:>15.8f}\n")
         else:
             fp.write("average diff = NaN\n")
 
         max_diff = np.sqrt(delta_max)
-        fp.write(f"max diff     = {max_diff:>15.8f} eV\n")
-
+        fp.write(f"max diff     = {max_diff:>15.8f}\n")
+    
     print(f"Convergence results written to: {output_file}")
     if nek > 0:
         print(f"Average difference: {np.sqrt(delta_sum/nek):.6f} eV")

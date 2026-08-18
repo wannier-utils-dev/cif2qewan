@@ -205,6 +205,14 @@ class qe_wannier_in:
                 self.system_str += line
                 nat = int(line.split("=")[1])
 
+        # Fail loudly rather than continuing with an empty system: a missing
+        # ntyp/nat means cif2cell did not produce a usable input file.
+        if ntyp == 0 or nat == 0:
+            raise ValueError(
+                "could not read ntyp/nat from cif2cell output "
+                "(got ntyp={}, nat={})".format(ntyp, nat)
+            )
+
         return ntyp, nat
 
     def set_system2(self, ntyp: int, ecut_wfc: float, ecut_rho: float) -> None:

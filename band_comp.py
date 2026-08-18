@@ -18,11 +18,13 @@ import os.path
 # Third-party imports
 import matplotlib
 import numpy as np
-from matplotlib import pyplot as plt
 
-# Configure matplotlib for non-interactive backend
+# Configure matplotlib for non-interactive backend.
+# This must happen before pyplot is imported so that the script also works
+# on machines without a display.
 matplotlib.use("Agg")
 
+from matplotlib import pyplot as plt  # noqa: E402
 
 def get_ef_from_scfout(scfout: str) -> float:
     """
@@ -53,12 +55,13 @@ def get_ef_from_scfout(scfout: str) -> float:
     ef = 0.0
     with open(scfout, "r") as fp:
         for line in fp.readlines():
-            # Look for Fermi energy line in QE output
+            # Look for Fermi energy line in QE output.
+            # Do not break: scf.out can contain several "Fermi" lines and the
+            # converged value is the last one.
             if "Fermi" in line:
                 # Extract Fermi energy from the second-to-last column
                 ef = float(line.split()[-2])
-                break
-
+    
     return ef
 
 
@@ -131,11 +134,11 @@ def get_froz_max(pwscf_win: str) -> float:
 
     with open(pwscf_win, "r") as fp:
         for line in fp.readlines():
-            # Look for dis_froz_max parameter in Wannier90 input
+            # Look for dis_froz_max parameter in Wannier90 input.
+            # Do not break: the last assignment in the file is the effective one.
             if "dis_froz_max" in line:
                 dis_froz_max = float((line.split())[-1])
-                break
-
+    
     return dis_froz_max
 
 
