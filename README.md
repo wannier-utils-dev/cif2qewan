@@ -39,12 +39,6 @@ A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 inp
 - cif2cell
 - Required Python packages (see below)
 
-### Python Dependencies
-
-```bash
-pip install numpy pandas pymatgen toml docopt matplotlib seekpath
-```
-
 ### Software Dependencies
 
 1. **Quantum ESPRESSO**: [Download and install QE](https://www.quantum-espresso.org/)
@@ -54,13 +48,19 @@ pip install numpy pandas pymatgen toml docopt matplotlib seekpath
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/wannier-utils-dev/cif2qewan.git
 cd cif2qewan
-
-# Make scripts executable
-chmod +x *.py *.sh
+pip install .
 ```
+
+This installs the Python dependencies and the `cif2qewan`, `band_comp` and
+`wannier_conv` commands. The pseudopotential tables are installed with the
+package; point `pp_list_path` in `cif2qewan.toml` at the one you want, for
+example `cif2qewan/pp_psl_rrkj.csv` in the clone.
+
+Without installing, the tools can also be run from a clone as
+`python -m cif2qewan.cif2qewan`, `python -m cif2qewan.band_comp` and
+`python -m cif2qewan.wannier_conv`.
 
 ## Quick Start
 
@@ -119,7 +119,7 @@ The `cif2qewan.toml` file contains all necessary configuration parameters:
 Create a CSV file with the following columns:
 
 ```csv
-Element,PP_file,nexclude,orbitals,ecutwfc,ecutrho
+atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho
 Fe,Fe.pbe-n-rrkjus_psl.1.0.0.UPF,0,spd,40.0,200.0
 O,O.pbe-n-rrkjus_psl.1.0.0.UPF,0,sp,40.0,200.0
 ```
@@ -202,7 +202,7 @@ wannier90.x pwscf
 cd check_wannier
 mpirun -n 16 pw.x < nscf.in > nscf.out
 cd ..
-python wannier_conv.py -e 5.0 -o ./
+wannier_conv -e 5.0 -o ./
 
 # Step 8: Generate band structure
 cd band
@@ -246,7 +246,7 @@ The plot shows:
 
 ```bash
 # Run convergence check
-python wannier_conv.py -e 5.0 -o ./ -i ./check_wannier/nscf.out
+wannier_conv -e 5.0 -o ./ -i ./check_wannier/nscf.out
 ```
 
 ### Convergence Metrics
@@ -363,14 +363,14 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 git clone https://github.com/wannier-utils-dev/cif2qewan.git
 cd cif2qewan
 
-# Install development dependencies
-pip install -r requirements-dev.txt
+# Install with the test dependencies
+pip install -e '.[test]'
 
 # Run tests
-python -m pytest tests/
+pytest
 
 # Run linting
-flake8 *.py
+flake8 cif2qewan tests
 ```
 
 ### Reporting Issues

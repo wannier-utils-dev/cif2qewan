@@ -61,8 +61,8 @@ pre-commit install
 
 ```bash
 # Install all development dependencies
-pip install -r requirements.txt
-pip install pytest pytest-cov flake8 black isort mypy sphinx
+pip install -e '.[test]'
+pip install flake8
 ```
 
 ## Contributing Guidelines
@@ -93,13 +93,8 @@ pip install pytest pytest-cov flake8 black isort mypy sphinx
    # Run tests
    pytest
 
-   # Run linting
-   flake8 cif2qewan/
-   black --check cif2qewan/
-   isort --check-only cif2qewan/
-
-   # Type checking
-   mypy cif2qewan/
+   # Run linting (what CI checks)
+   flake8 cif2qewan tests --select=E9,F63,F7,F82
    ```
 
 4. **Commit your changes**:
