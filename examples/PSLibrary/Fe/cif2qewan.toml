@@ -1,6 +1,6 @@
 cif2cell_path = "/path/to/cif2cell"
-pseudo_dir = "/path/to/pseudopotentials"
-pp_list_path = "/path/to/nc-sr-05_pbe_standard_upf.csv"
+pseudo_dir = "/path/to/pslibrary"
+pp_list_path = "/path/to/cif2qewan/pp_psl_rrkj.csv"
 scf_k_resolution = 0.15
 degauss = 0.01
 
