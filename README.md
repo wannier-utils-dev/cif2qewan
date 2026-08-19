@@ -2,7 +2,7 @@
 
 A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 input files from CIF (Crystallographic Information File) structures, with automated workflow management and band structure analysis capabilities.
 
-[![License: GPL v2](https://img.shields.io/badge/License-GPLv2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
 ## Table of Contents
@@ -401,7 +401,7 @@ Please report issues on our [GitHub Issues](https://github.com/wannier-utils-dev
 
 ## License
 
-This project is licensed under the GNU General Public License v2 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
