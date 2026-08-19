@@ -1,6 +1,6 @@
-cif2cell_path = "/home/arimoto/ISSP/.venv/bin/cif2cell"
-pseudo_dir = "/home/arimoto/PseudoPotentials/PseudoDojo"
-pp_list_path = "/home/arimoto/ISSP/Norm_Conserved_PseudoPotentials/cif2qewan/nc-sr-05_pbe_standard_upf.csv"
+cif2cell_path = "/path/to/cif2cell"
+pseudo_dir = "/path/to/pseudodojo"
+pp_list_path = "/path/to/cif2qewan/nc-sr-05_pbe_standard_upf.csv"
 scf_k_resolution = 0.15
 degauss = 0.01
 

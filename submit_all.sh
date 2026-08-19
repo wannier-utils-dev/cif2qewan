@@ -1,39 +1,125 @@
 #!/bin/bash
+#
+# Complete Quantum ESPRESSO + Wannier90 calculation workflow.
+#
+# This script automates the entire workflow from CIF file to band structure
+# comparison, including SCF, NSCF, Wannier90 interpolation, and convergence
+# checking. It performs the following steps:
+#
+# 1. Generate input files from CIF
+# 2. Run SCF calculation
+# 3. Run NSCF calculation for Wannier90
+# 4. Run Wannier90 preprocessing and interpolation
+# 5. Check Wannier90 convergence
+# 6. Generate band structure plots
+# 7. Compare DFT and Wannier90 band structures
 
-MPI_PREFIX="mpirun -n 16"
-ESPRESSO_DIR=/path/to/espresso_dir
-WANNIER90_DIR=/path/to/wannier90_dir
-CIF2QEWAN_DIR=/path/to/cif2qewan_dir
-TOML_FILE=/path/to/cif2qewan.toml
+# =============================================================================
+# Configuration Section
+# =============================================================================
 
-python $CIF2QEWAN_DIR/cif2qewan.py *.cif $TOML_FILE
+# MPI configuration
+MPI_PREFIX="mpirun -n 16"  # Adjust number of processes as needed
 
+# Software paths (modify these paths according to your installation)
+ESPRESSO_DIR=/path/to/espresso_dir      # Quantum ESPRESSO installation directory
+WANNIER90_DIR=/path/to/wannier90_dir     # Wannier90 installation directory
+TOML_FILE=/path/to/cif2qewan.toml        # Configuration file path
+
+# =============================================================================
+# Step 1: Generate Input Files from CIF
+# =============================================================================
+
+echo "Step 1: Generating input files from CIF..."
+# Use the installed module to avoid relying on script paths
+python -m cif2qewan.cif2qewan *.cif $TOML_FILE
+
+# =============================================================================
+# Step 2: Self-Consistent Field (SCF) Calculation
+# =============================================================================
+
+echo "Step 2: Running SCF calculation..."
 $MPI_PREFIX $ESPRESSO_DIR/bin/pw.x < scf.in > scf.out
+
+# Copy work directory for subsequent calculations
+echo "Copying work directory for NSCF calculations..."
 cp -r work check_wannier/
 cp -r work band/
 
+# =============================================================================
+# Step 3: Non-Self-Consistent Field (NSCF) Calculation for Wannier90
+# =============================================================================
+
+echo "Step 3: Running NSCF calculation for Wannier90..."
 $MPI_PREFIX $ESPRESSO_DIR/bin/pw.x < nscf.in > nscf.out &&
+echo "Running Wannier90 preprocessing..." &&
 $MPI_PREFIX $WANNIER90_DIR/wannier90.x -pp pwscf &&
+echo "Running pw2wannier90 interface..." &&
 $MPI_PREFIX $ESPRESSO_DIR/bin/pw2wannier90.x < pw2wan.in > pw2wan.out &&
+echo "Cleaning up work directory..." &&
 rm -r work
 
-# set dis_froz_max = EF+1eV
+# =============================================================================
+# Step 4: Set Frozen Window and Run Wannier90
+# =============================================================================
+
+echo "Step 4: Setting frozen window and running Wannier90..."
+
+# Extract Fermi energy and set dis_froz_max = EF + 1 eV
+echo "Extracting Fermi energy and setting frozen window..."
 ef=$(grep Fermi nscf.out | cut -c27-35)
 ef1=$(bc -l <<< "$ef + 1")
+echo "Fermi energy: $ef eV"
+echo "Setting dis_froz_max to: $ef1 eV"
+
+# Update Wannier90 input file with new frozen window
 sed -i "s/dis_froz_max .*/dis_froz_max = $ef1/g" pwscf.win
 
+# Run Wannier90 interpolation
+echo "Running Wannier90 interpolation..."
 $MPI_PREFIX $WANNIER90_DIR/wannier90.x pwscf
 
+# =============================================================================
+# Step 5: Check Wannier90 Convergence
+# =============================================================================
+
+echo "Step 5: Checking Wannier90 convergence..."
+
+# Run shifted k-point calculation for convergence check
 cd check_wannier &&
+echo "Running shifted k-point NSCF calculation..." &&
 $MPI_PREFIX $ESPRESSO_DIR/bin/pw.x < nscf.in > nscf.out &&
+echo "Cleaning up work directory..." &&
 rm -r work &&
 cd ../
-python $CIF2QEWAN_DIR/wannier_conv.py
+
+# Check convergence by comparing Wannier90 and DFT energies
+echo "Comparing Wannier90 and DFT energies..."
+python -m cif2qewan.wannier_conv -e 5.0 -o ./ -i ./check_wannier/nscf.out
+
+# =============================================================================
+# Step 6: Generate Band Structure
+# =============================================================================
+
+echo "Step 6: Generating band structure..."
 
 cd band &&
+echo "Running band structure NSCF calculation..." &&
 $MPI_PREFIX $ESPRESSO_DIR/bin/pw.x < nscf.in > nscf.out &&
+echo "Running bands.x for band structure..." &&
 $MPI_PREFIX $ESPRESSO_DIR/bin/bands.x < band.in > band.out &&
+echo "Cleaning up work directory..." &&
 rm -r work &&
 cd ../
 
-python $CIF2QEWAN_DIR/band_comp.py
+# =============================================================================
+# Step 7: Compare Band Structures
+# =============================================================================
+
+echo "Step 7: Comparing DFT and Wannier90 band structures..."
+python -m cif2qewan.band_comp -o ./
+
+echo "Workflow finished."
+echo "Check the following files for results:"
+echo "  - CONV_5.0: Wannier90 convergence results"
+echo "  - band_compare.png/eps: Band structure comparison plots"

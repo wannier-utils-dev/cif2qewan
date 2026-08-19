@@ -5,7 +5,7 @@
   prefix = 'pwscf'
   tstress = .true.
   tprnfor = .true.
-  pseudo_dir = '/home/arimoto/PseudoPotentials/PSLibrary'
+  pseudo_dir = '/path/to/pslibrary'
   outdir = './work'
   wf_collect = .true.
   disk_io = 'low'
