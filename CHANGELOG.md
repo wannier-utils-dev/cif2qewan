@@ -36,7 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `matplotlib.use("Agg")` is called before `pyplot` is imported again, so
   plotting works on machines without a display.
 
+- The license changed from GPLv2 to MIT, with the agreement of the copyright
+  holders.
+
 ### Not changed
-- The license is still GPLv2. Relicensing to MIT is proposed separately.
 - The numerical behaviour of the generated inputs is unchanged: both
   reference examples are reproduced exactly.
