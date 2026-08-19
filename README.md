@@ -39,12 +39,6 @@ A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 inp
 - cif2cell
 - Required Python packages (see below)
 
-### Python Dependencies
-
-```bash
-pip install numpy pandas pymatgen toml docopt matplotlib
-```
-
 ### Software Dependencies
 
 1. **Quantum ESPRESSO**: [Download and install QE](https://www.quantum-espresso.org/)
@@ -54,13 +48,19 @@ pip install numpy pandas pymatgen toml docopt matplotlib
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/wannier-utils-dev/cif2qewan.git
 cd cif2qewan
-
-# Make scripts executable
-chmod +x *.py *.sh
+pip install .
 ```
+
+This installs the Python dependencies and the `cif2qewan`, `band_comp` and
+`wannier_conv` commands. The pseudopotential tables are installed with the
+package; point `pp_list_path` in `cif2qewan.toml` at the one you want, for
+example `cif2qewan/pp_psl_rrkj.csv` in the clone.
+
+Without installing, the tools can also be run from a clone as
+`python -m cif2qewan.cif2qewan`, `python -m cif2qewan.band_comp` and
+`python -m cif2qewan.wannier_conv`.
 
 ## Quick Start
 
@@ -94,9 +94,9 @@ write_unk = ".true."
 ./submit_all.sh
 
 # Or run step by step
-python cif2qewan.py structure.cif cif2qewan.toml
+cif2qewan structure.cif cif2qewan.toml   # or: python -m cif2qewan.cif2qewan structure.cif cif2qewan.toml
 # ... run QE and Wannier90 calculations ...
-python band_comp.py -o ./
+python -m cif2qewan.band_comp -o ./
 ```
 
 ## Configuration
@@ -119,7 +119,7 @@ The `cif2qewan.toml` file contains all necessary configuration parameters:
 Create a CSV file with the following columns:
 
 ```csv
-Element,PP_file,nexclude,orbitals,ecutwfc,ecutrho
+atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho
 Fe,Fe.pbe-n-rrkjus_psl.1.0.0.UPF,0,spd,40.0,200.0
 O,O.pbe-n-rrkjus_psl.1.0.0.UPF,0,sp,40.0,200.0
 ```
@@ -130,13 +130,13 @@ O,O.pbe-n-rrkjus_psl.1.0.0.UPF,0,sp,40.0,200.0
 
 ```bash
 # Generate input files from CIF
-python cif2qewan.py structure.cif cif2qewan.toml
+cif2qewan structure.cif cif2qewan.toml
 
 # With spin-orbit coupling
-python cif2qewan.py structure.cif cif2qewan.toml --so
+cif2qewan structure.cif cif2qewan.toml --so
 
 # With magnetic calculations
-python cif2qewan.py structure.cif cif2qewan.toml --mag
+cif2qewan structure.cif cif2qewan.toml --mag
 ```
 
 ### Command Line Options
@@ -180,7 +180,7 @@ This script performs the following steps:
 
 ```bash
 # Step 1: Generate input files
-python cif2qewan.py structure.cif cif2qewan.toml
+cif2qewan structure.cif cif2qewan.toml
 
 # Step 2: Run SCF calculation
 mpirun -n 16 pw.x < scf.in > scf.out
@@ -202,7 +202,7 @@ wannier90.x pwscf
 cd check_wannier
 mpirun -n 16 pw.x < nscf.in > nscf.out
 cd ..
-python wannier_conv.py -e 5.0 -o ./
+wannier_conv -e 5.0 -o ./
 
 # Step 8: Generate band structure
 cd band
@@ -211,7 +211,7 @@ mpirun -n 16 bands.x < band.in > band.out
 cd ..
 
 # Step 9: Compare band structures
-python band_comp.py -o ./
+python -m cif2qewan.band_comp -o ./
 ```
 
 ## Band Structure Analysis
@@ -226,7 +226,7 @@ mpirun -n 16 bands.x < band.in > band.out
 cd ..
 
 # Generate comparison plot
-python band_comp.py -o ./
+python -m cif2qewan.band_comp -o ./
 ```
 
 ### Output Files
@@ -246,7 +246,7 @@ The plot shows:
 
 ```bash
 # Run convergence check
-python wannier_conv.py -e 5.0 -o ./ -i ./check_wannier/nscf.out
+wannier_conv -e 5.0 -o ./ -i ./check_wannier/nscf.out
 ```
 
 ### Convergence Metrics
@@ -273,7 +273,7 @@ The script calculates two convergence metrics:
 
 ```bash
 # Generate input files (see examples/PSLibrary/Fe/ for the CIF file)
-python cif2qewan.py mp-13_Fe.cif cif2qewan.toml --mag
+cif2qewan mp-13_Fe.cif cif2qewan.toml --mag
 
 # Run calculations
 ./submit_all.sh
@@ -283,7 +283,7 @@ python cif2qewan.py mp-13_Fe.cif cif2qewan.toml --mag
 
 ```bash
 # Generate input with SOC
-python cif2qewan.py structure.cif cif2qewan.toml --so
+cif2qewan structure.cif cif2qewan.toml --so
 
 # Run calculations
 ./submit_all.sh
@@ -337,7 +337,7 @@ write_unk = ".false."
 
 ```bash
 # Run with verbose output
-python cif2qewan.py structure.cif cif2qewan.toml --verbose
+cif2qewan structure.cif cif2qewan.toml --verbose
 
 # Check intermediate files
 ls -la work/
@@ -363,14 +363,14 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 git clone https://github.com/wannier-utils-dev/cif2qewan.git
 cd cif2qewan
 
-# Install development dependencies
-pip install -r requirements-dev.txt
+# Install with the test dependencies
+pip install -e '.[test]'
 
 # Run tests
-python -m pytest tests/
+pytest
 
 # Run linting
-flake8 *.py
+flake8 cif2qewan tests
 ```
 
 ### Reporting Issues

@@ -24,7 +24,6 @@ MPI_PREFIX="mpirun -n 16"  # Adjust number of processes as needed
 # Software paths (modify these paths according to your installation)
 ESPRESSO_DIR=/path/to/espresso_dir      # Quantum ESPRESSO installation directory
 WANNIER90_DIR=/path/to/wannier90_dir     # Wannier90 installation directory
-CIF2QEWAN_DIR=/path/to/cif2qewan_dir    # cif2qewan script directory
 TOML_FILE=/path/to/cif2qewan.toml        # Configuration file path
 
 # =============================================================================
@@ -32,7 +31,8 @@ TOML_FILE=/path/to/cif2qewan.toml        # Configuration file path
 # =============================================================================
 
 echo "Step 1: Generating input files from CIF..."
-python $CIF2QEWAN_DIR/cif2qewan.py *.cif $TOML_FILE
+# Use the installed module to avoid relying on script paths
+python -m cif2qewan.cif2qewan *.cif $TOML_FILE
 
 # =============================================================================
 # Step 2: Self-Consistent Field (SCF) Calculation
@@ -95,7 +95,7 @@ cd ../
 
 # Check convergence by comparing Wannier90 and DFT energies
 echo "Comparing Wannier90 and DFT energies..."
-python $CIF2QEWAN_DIR/wannier_conv.py -e 5.0 -o ./ -i ./check_wannier/nscf.out
+python -m cif2qewan.wannier_conv -e 5.0 -o ./ -i ./check_wannier/nscf.out
 
 # =============================================================================
 # Step 6: Generate Band Structure
@@ -117,7 +117,7 @@ cd ../
 # =============================================================================
 
 echo "Step 7: Comparing DFT and Wannier90 band structures..."
-python $CIF2QEWAN_DIR/band_comp.py -o ./
+python -m cif2qewan.band_comp -o ./
 
 echo "Workflow finished."
 echo "Check the following files for results:"
