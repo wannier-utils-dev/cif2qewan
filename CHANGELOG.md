@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-12
+
 ### Added
 - NumPy-style docstrings, comments and type hints throughout the code.
 - Packaging: the scripts moved into a `cif2qewan` package that can be
@@ -42,3 +44,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Not changed
 - The numerical behaviour of the generated inputs is unchanged: both
   reference examples are reproduced exactly.
+
+## [0.1.0] - 2026-09-12
+
+### Added
+- Historical release of the original script-based version from the former
+  `master` branch, preserved for existing users before the packaging and
+  documentation changes in 0.2.0.
