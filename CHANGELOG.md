@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- Reference examples `examples/PSLibrary/Fe_nonmag` (no options) and
+  `examples/PSLibrary/Fe_so` (`--so` only), generated from the same Fe CIF as
+  `examples/PSLibrary/Fe`.
+- Characterization tests for the 0.2.x behaviour (DEVELOPMENT_PLAN.md
+  Step 1): the physical content of the generated inputs (spin settings per
+  option, k-mesh relations, cell and atoms shared by QE and Wannier90, band
+  and Wannier-function counts) and the CLI exit status for invalid inputs.
+
 ## [0.2.0] - 2026-09-12
 
 ### Added

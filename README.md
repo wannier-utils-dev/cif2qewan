@@ -272,7 +272,8 @@ The script calculates two convergence metrics:
 ### Example 1: Iron (Fe) Crystal
 
 ```bash
-# Generate input files (see examples/PSLibrary/Fe/ for the CIF file)
+# Generate input files (see examples/PSLibrary/Fe*/ for the CIF file and
+# the reference outputs without options, with --so, and with --so --mag)
 cif2qewan mp-13_Fe.cif cif2qewan.toml --mag
 
 # Run calculations
