@@ -28,6 +28,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `ExternalCommandError` on failure. `cif2qewan.structure.compare` checks
   two structures for physical equivalence (same lattice, same sites up to
   lattice translations, same magnetic moments) within tolerances.
+- QE renderer (DEVELOPMENT_PLAN.md Step 4), not yet used by the CLI:
+  `cif2qewan.qe.writer` turns `PwInput` and `NamelistInput` models into
+  text with the 0.2.x formatting. It always writes the `K_POINTS` option in
+  braces (`K_POINTS {automatic}`); 0.2.x copied `K_POINTS automatic` from
+  cif2cell for scf.in. Both spellings are accepted by pw.x.
 
 ## [0.2.0] - 2026-09-12
 

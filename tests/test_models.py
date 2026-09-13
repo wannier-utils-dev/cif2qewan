@@ -229,8 +229,9 @@ def test_namelist_validation():
         Namelist("system", {"x": [1, 2]})
     with pytest.raises(InputModelError):
         Namelist("system", {"x": float("inf")})
+    assert RawValue("").literal == ""  # allowed: renders as "key = "
     with pytest.raises(InputModelError):
-        RawValue(" ")
+        RawValue(1.0)
 
 
 def test_pw_input_accepts_a_consistent_scf():

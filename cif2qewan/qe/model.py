@@ -21,13 +21,19 @@ Vector3 = Tuple[float, float, float]
 
 @dataclass(frozen=True)
 class RawValue:
-    """A namelist value kept exactly as written, e.g. ``1.0d-8`` or ``'m-p'``."""
+    """A namelist value kept exactly as written, e.g. ``1.0d-8`` or ``'m-p'``.
+
+    An empty literal renders as ``key = `` with nothing after the equals
+    sign; the 0.2.x ``proj.in`` writes ``Emax`` and ``Emin`` that way.
+    """
 
     literal: str
 
     def __post_init__(self) -> None:
-        if not str(self.literal).strip():
-            raise InputModelError("a raw namelist value must not be empty")
+        if not isinstance(self.literal, str):
+            raise InputModelError(
+                f"a raw namelist value must be a string, got {self.literal!r}"
+            )
 
 
 NamelistValue = Union[bool, int, float, str, RawValue]
