@@ -1,10 +1,9 @@
-"""Characterization tests for the command-line behaviour of ``cif2qewan``.
+"""Tests for the ``cif2qewan`` command line.
 
-They record the exit status and the failure mode of the 0.2.x CLI for
-representative invalid inputs. Some of these behaviours (the bare
-tracebacks, the silent reuse of ``cif_scf.in``) are limitations that the
-0.3.0 refactoring intends to change; when that happens, update the test in
-the same PR and record the change in CHANGELOG.md.
+They cover the exit status and the error reporting for representative
+invalid inputs, the ``--cif2cell-output`` compatibility path used by the
+examples, the ``--reader pymatgen`` path, and the deprecated
+``python -m cif2qewan.cif2qewan`` entry point.
 """
 
 import shutil
@@ -13,96 +12,165 @@ import sys
 
 import pytest
 
-from conftest import EXAMPLES, EXAMPLE_CASES, generated_files, write_example_toml
+from conftest import EXAMPLE_CASES, generated_files, write_example_toml
 
 FE = EXAMPLE_CASES[0]  # PSLibrary/Fe, --so --mag
+ALL_OUTPUTS = {
+    "scf.in",
+    "nscf.in",
+    "pw2wan.in",
+    "pwscf.win",
+    "check_wannier/nscf.in",
+    "band/nscf.in",
+    "band/band.in",
+    "band/proj.in",
+    "band/pp.in",
+}
 
 
-def run_cli(args, cwd):
+def run_cli(args, cwd, module="cif2qewan.cli"):
     return subprocess.run(
-        [sys.executable, "-m", "cif2qewan.cif2qewan", *args],
+        [sys.executable, "-m", module, *args],
         cwd=cwd,
         capture_output=True,
         text=True,
     )
 
 
-def test_help_exits_zero(tmp_path):
+def test_help_and_version_exit_zero(tmp_path):
     result = run_cli(["--help"], tmp_path)
     assert result.returncode == 0
-    assert "cif2qewan" in result.stdout
     assert "--so" in result.stdout and "--mag" in result.stdout
+    assert "--cif2cell-output" in result.stdout and "--reader" in result.stdout
+    assert run_cli(["--version"], tmp_path).stdout.startswith("cif2qewan ")
 
 
 def test_missing_arguments_exit_nonzero(tmp_path):
     result = run_cli([], tmp_path)
     assert result.returncode != 0
-    assert "Usage" in result.stdout + result.stderr
+    assert "usage" in (result.stdout + result.stderr).lower()
 
 
-def test_missing_toml_exits_nonzero(tmp_path):
+def test_missing_toml_is_reported_without_a_traceback(tmp_path):
     result = run_cli(["structure.cif", "missing.toml"], tmp_path)
-    assert result.returncode != 0
-    assert "missing.toml" in result.stderr
+    assert result.returncode == 1
+    assert "cif2qewan: error:" in result.stderr and "missing.toml" in result.stderr
+    assert "Traceback" not in result.stderr
     assert generated_files(tmp_path) == set()
 
 
-def test_missing_cif_without_cif2cell_exits_nonzero(tmp_path):
-    """With no cif_scf.in and an unusable cif2cell path nothing is generated."""
+def test_unusable_cif2cell_is_reported(tmp_path):
+    """The configured cif2cell path does not exist: no output, clear message."""
     write_example_toml(FE, tmp_path)
-    result = run_cli(["missing.cif", "cif2qewan.toml"], tmp_path)
-    assert result.returncode != 0
-    assert "cif_scf.in" in result.stderr
+    (tmp_path / "structure.cif").write_text((FE.reference / "mp-13_Fe.cif").read_text())
+    result = run_cli(["structure.cif", "cif2qewan.toml"], tmp_path)
+    assert result.returncode == 1
+    assert (
+        "cannot run cif2cell" in result.stderr and "/path/to/cif2cell" in result.stderr
+    )
+    assert "Traceback" not in result.stderr
+    assert generated_files(tmp_path) == {"structure.cif"}  # only the input we wrote
+
+
+def test_existing_cif_scf_in_is_not_reused_implicitly(tmp_path):
+    """0.2.x silently reused cif_scf.in from the working directory; 0.3 does not."""
+    shutil.copy(FE.reference / "cif_scf.in", tmp_path)
+    write_example_toml(FE, tmp_path)
+    result = run_cli(["does_not_exist.cif", "cif2qewan.toml"], tmp_path)
+    assert result.returncode == 1
+    assert "CIF file not found" in result.stderr
     assert generated_files(tmp_path) == set()
 
 
-def test_unsupported_element_exits_nonzero(tmp_path):
-    """An element without a pseudopotential in the table aborts the run."""
-    pytest.importorskip("pymatgen")
+def test_unsupported_element_is_reported(tmp_path):
     cif_scf = (FE.reference / "cif_scf.in").read_text().replace("Fe", "Fr")
     (tmp_path / "cif_scf.in").write_text(cif_scf)
     write_example_toml(FE, tmp_path)
-
-    result = run_cli(["structure.cif", "cif2qewan.toml"], tmp_path)
-    assert result.returncode != 0
-    assert "scf.in" not in generated_files(tmp_path)
+    result = run_cli(
+        ["structure.cif", "cif2qewan.toml", "--cif2cell-output", "cif_scf.in"], tmp_path
+    )
+    assert result.returncode == 1
+    assert "Fr has no pseudopotential" in result.stderr
+    assert generated_files(tmp_path) == set()
 
 
 @pytest.mark.parametrize("flags", [(), ("--so",), ("--mag",), ("--so", "--mag")])
-def test_valid_run_exits_zero_and_writes_all_files(tmp_path, flags):
+def test_cif2cell_output_path_writes_all_files(tmp_path, flags):
     pytest.importorskip("seekpath")
     pytest.importorskip("pymatgen")
     shutil.copy(FE.reference / "cif_scf.in", tmp_path)
+    write_example_toml(FE, tmp_path)
+
+    result = run_cli(
+        ["mp-13_Fe.cif", "cif2qewan.toml", *flags, "--cif2cell-output", "cif_scf.in"],
+        tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("cif2qewan: wrote scf.in, ")
+    assert generated_files(tmp_path) == ALL_OUTPUTS
+    # the explicitly given cif2cell output is left untouched
+    assert (tmp_path / "cif_scf.in").read_text() == (
+        FE.reference / "cif_scf.in"
+    ).read_text()
+
+
+def test_output_dir_and_copied_cif2cell_output(tmp_path):
+    pytest.importorskip("seekpath")
+    pytest.importorskip("pymatgen")
+    write_example_toml(FE, tmp_path)
+    out = tmp_path / "run"
+    result = run_cli(
+        [
+            "x.cif",
+            "cif2qewan.toml",
+            "--cif2cell-output",
+            str(FE.reference / "cif_scf.in"),
+            "--output-dir",
+            str(out),
+        ],
+        tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert generated_files(out) == ALL_OUTPUTS
+    assert (out / "cif_scf.in").read_text() == (FE.reference / "cif_scf.in").read_text()
+    assert generated_files(tmp_path) == {"run/" + f for f in ALL_OUTPUTS}
+
+
+def test_pymatgen_reader_path(tmp_path):
+    pytest.importorskip("seekpath")
+    pytest.importorskip("pymatgen")
     shutil.copy(FE.reference / "mp-13_Fe.cif", tmp_path)
     write_example_toml(FE, tmp_path)
-
-    result = run_cli(["mp-13_Fe.cif", "cif2qewan.toml", *flags], tmp_path)
+    result = run_cli(
+        ["mp-13_Fe.cif", "cif2qewan.toml", "--reader", "pymatgen"], tmp_path
+    )
     assert result.returncode == 0, result.stderr
-    assert generated_files(tmp_path) >= {
-        "scf.in",
-        "nscf.in",
-        "pw2wan.in",
-        "pwscf.win",
-        "check_wannier/nscf.in",
-        "band/nscf.in",
-        "band/band.in",
-        "band/proj.in",
-        "band/pp.in",
-    }
+    assert generated_files(tmp_path) == ALL_OUTPUTS  # no cif_scf.in on this path
+    scf = (tmp_path / "scf.in").read_text()
+    assert "21 21 21  0 0 0" in scf
+    assert "Fe.pbe-spn-rrkjus_psl.0.2.1.UPF" in scf
 
 
-def test_existing_cif_scf_in_is_reused_without_the_cif(tmp_path):
-    """0.2.x reuses cif_scf.in from the working directory unconditionally.
-
-    The CIF file itself is not read when cif_scf.in exists. This is the
-    behaviour the example tests rely on; DEVELOPMENT_PLAN.md Step 3 replaces
-    it with an explicit way to pass a pre-generated cif2cell output.
-    """
+def test_old_module_entry_point_still_works(tmp_path):
     pytest.importorskip("seekpath")
     pytest.importorskip("pymatgen")
     shutil.copy(FE.reference / "cif_scf.in", tmp_path)
     write_example_toml(FE, tmp_path)
-
-    result = run_cli(["does_not_exist.cif", "cif2qewan.toml"], tmp_path)
+    result = run_cli(
+        ["x.cif", "cif2qewan.toml", "--cif2cell-output", "cif_scf.in"],
+        tmp_path,
+        module="cif2qewan.cif2qewan",
+    )
     assert result.returncode == 0, result.stderr
-    assert "scf.in" in generated_files(tmp_path)
+    assert generated_files(tmp_path) == ALL_OUTPUTS
+
+
+def test_old_python_api_warns():
+    import warnings
+
+    from cif2qewan.cif2qewan import qe_wannier_in
+
+    with pytest.raises(Exception), warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        qe_wannier_in("missing.cif", "missing.toml", False, False)
+    assert any(issubclass(w.category, DeprecationWarning) for w in caught)

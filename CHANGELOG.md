@@ -6,7 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- The `cif2qewan` command is now implemented by `cif2qewan.cli` on top of
+  the reader / workflow builder / renderer modules (DEVELOPMENT_PLAN.md
+  Step 7). The command name and the `--so` / `--mag` options are unchanged.
+- Generated inputs: scf.in writes `K_POINTS {automatic}` (0.2.x copied
+  `K_POINTS automatic` from cif2cell); pwscf.win lists the keywords in a
+  fixed layout (`num_wann = ...` with a single space, `spinors` right after
+  the counts, all pass-through parameters in one block before
+  `projections`). All numbers and all other files are identical to 0.2.x;
+  the reference examples are regenerated.
+- An existing `cif_scf.in` in the working directory is no longer reused
+  implicitly. cif2cell runs in a fresh temporary directory with an argument
+  list (no shell), its exit status is checked, and its output is written to
+  `cif_scf.in` in the output directory as before. To reuse a cif2cell
+  output, pass it explicitly with `--cif2cell-output FILE`.
+- Errors in the configuration, the structure, the pseudopotential table or
+  cif2cell are reported as `cif2qewan: error: ...` with exit status 1
+  instead of a traceback.
+- `cif2qewan` no longer uses `docopt`; the dependency stays until the
+  deprecated module is removed.
+
+### Deprecated
+- `cif2qewan.cif2qewan.qe_wannier_in` and `cif2qewan.cif2qewan.main`
+  (the 0.2.x implementation). `main` delegates to the new CLI;
+  `qe_wannier_in` still works but warns. `python -m cif2qewan.cif2qewan`
+  keeps working. Both will be removed in a later release.
+
 ### Added
+- `cif2qewan --reader pymatgen` reads the structure with pymatgen instead
+  of cif2cell (primitive cell in the CIF's Cartesian frame; the SCF mesh
+  follows `scf_k_resolution` with cif2cell's rule). `--cif2cell-output FILE`
+  reuses a cif2cell output, `--output-dir DIR` selects the target directory,
+  `--version` prints the version.
 - Reference examples `examples/PSLibrary/Fe_nonmag` (no options) and
   `examples/PSLibrary/Fe_so` (`--so` only), generated from the same Fe CIF as
   `examples/PSLibrary/Fe`.
@@ -14,13 +46,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   Step 1): the physical content of the generated inputs (spin settings per
   option, k-mesh relations, cell and atoms shared by QE and Wannier90, band
   and Wannier-function counts) and the CLI exit status for invalid inputs.
-- Typed internal models (DEVELOPMENT_PLAN.md Step 2), not yet used by the
-  CLI: `cif2qewan.structure.model` (`NormalizedStructure`, `AtomicSite`,
+- Typed internal models (DEVELOPMENT_PLAN.md Step 2): `cif2qewan.structure.model` (`NormalizedStructure`, `AtomicSite`,
   Cartesian `MagneticMoment` in Bohr magneton), `cif2qewan.qe.model`
   (namelists, cards and `PwInput`), `cif2qewan.wannier90.model`
   (`Wannier90Input`), `cif2qewan.workflow.model` (`CalculationPlan`) and
   the exception hierarchy in `cif2qewan.exceptions`.
-- Structure readers (DEVELOPMENT_PLAN.md Step 3), not yet used by the CLI:
+- Structure readers (DEVELOPMENT_PLAN.md Step 3):
   `cif2qewan.structure.readers` with the `StructureReader` protocol, a
   `PymatgenReader` for CIF/MCIF and the other pymatgen formats, and a
   `Cif2cellReader` that runs cif2cell with `subprocess` in a fresh temporary
@@ -28,16 +59,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `ExternalCommandError` on failure. `cif2qewan.structure.compare` checks
   two structures for physical equivalence (same lattice, same sites up to
   lattice translations, same magnetic moments) within tolerances.
-- QE renderer (DEVELOPMENT_PLAN.md Step 4), not yet used by the CLI:
+- QE renderer (DEVELOPMENT_PLAN.md Step 4):
   `cif2qewan.qe.writer` turns `PwInput` and `NamelistInput` models into
   text with the 0.2.x formatting. It always writes the `K_POINTS` option in
   braces (`K_POINTS {automatic}`); 0.2.x copied `K_POINTS automatic` from
   cif2cell for scf.in. Both spellings are accepted by pw.x.
-- Wannier90 renderer (DEVELOPMENT_PLAN.md Step 5), not yet used by the
-  CLI: `cif2qewan.wannier90.writer.render_win` turns a `Wannier90Input`
+- Wannier90 renderer (DEVELOPMENT_PLAN.md Step 5): `cif2qewan.wannier90.writer.render_win` turns a `Wannier90Input`
   into `.win` text with the 0.2.x numeric formats and a fixed layout
   (counts, `spinors`, pass-through parameters, then the blocks).
-- Workflow layer (DEVELOPMENT_PLAN.md Step 6), not yet used by the CLI:
+- Workflow layer (DEVELOPMENT_PLAN.md Step 6):
   `cif2qewan.config.Config` (TOML + `--so`/`--mag`),
   `cif2qewan.qe.pseudopotential.PseudopotentialTable` (the CSV tables, read
   with the standard library), `cif2qewan.qe.kpoints` (SCF mesh from the

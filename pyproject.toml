@@ -54,7 +54,7 @@ Repository = "https://github.com/wannier-utils-dev/cif2qewan.git"
 Issues = "https://github.com/wannier-utils-dev/cif2qewan/issues"
 
 [project.scripts]
-cif2qewan = "cif2qewan.cif2qewan:main"
+cif2qewan = "cif2qewan.cli:main"
 band_comp = "cif2qewan.band_comp:main"
 wannier_conv = "cif2qewan.wannier_conv:main"
 

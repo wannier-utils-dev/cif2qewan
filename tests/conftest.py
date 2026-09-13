@@ -9,12 +9,10 @@ the whole test session so that several test modules can inspect the result.
 ``cif_scf.in``, and every reference example ships one.
 """
 
-import os
 import pathlib
 import re
 import toml
 import shutil
-import sys
 from typing import NamedTuple
 
 import pytest
@@ -72,25 +70,31 @@ def write_example_toml(case, workdir):
 
 
 def generate(case, workdir):
-    """Regenerate one example inside workdir with the current code."""
+    """Regenerate one example inside workdir with the current code.
+
+    The shipped cif2cell output is passed explicitly, so cif2cell itself is
+    not needed; the CIF is copied only to mirror the example directory.
+    """
     pytest.importorskip("seekpath", reason="the band k-path needs seekpath")
     pytest.importorskip("pymatgen", reason="the band k-path needs pymatgen")
-    from cif2qewan.cif2qewan import main
+    from cif2qewan.cli import main
 
     shutil.copy(case.reference / "cif_scf.in", workdir)
     shutil.copy(case.reference / "mp-13_Fe.cif", workdir)
     write_example_toml(case, workdir)
 
-    # main() reads sys.argv and writes into the current working directory.
-    cwd = os.getcwd()
-    argv = sys.argv
-    os.chdir(workdir)
-    sys.argv = ["cif2qewan", "mp-13_Fe.cif", "cif2qewan.toml", *case.flags]
-    try:
-        main()
-    finally:
-        os.chdir(cwd)
-        sys.argv = argv
+    status = main(
+        [
+            "mp-13_Fe.cif",
+            str(workdir / "cif2qewan.toml"),
+            *case.flags,
+            "--cif2cell-output",
+            str(workdir / "cif_scf.in"),
+            "--output-dir",
+            str(workdir),
+        ]
+    )
+    assert status == 0
 
 
 def generated_files(root):
@@ -128,24 +132,3 @@ def example_config(case, so=None, mag=None):
         so=case.so if so is None else so,
         mag=case.mag if mag is None else mag,
     )
-
-
-def win_blocks(text):
-    """name -> list of lines for every begin/end block of a .win file."""
-    return {
-        name: body.strip("\n").splitlines()
-        for name, body in re.findall(r"begin (\w+)\n(.*?)end \1", text, re.S)
-    }
-
-
-def win_keywords(text):
-    """key -> value for every ``key = value`` / ``key: value`` line outside blocks."""
-    outside = re.sub(r"begin (\w+)\n.*?end \1\n", "", text, flags=re.S)
-    return dict(re.findall(r"^(\w+)\s*[=:]\s*(.*?)\s*$", outside, re.M))
-
-
-def normalize_reference(path, text):
-    """Reference text with the documented 0.3 formatting normalizations applied."""
-    if path == "scf.in":
-        text = text.replace("K_POINTS automatic", "K_POINTS {automatic}")
-    return text

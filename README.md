@@ -145,17 +145,28 @@ cif2qewan structure.cif cif2qewan.toml --mag
 |--------|-------------|
 | `--so` | Include spin-orbit coupling |
 | `--mag` | Perform magnetic calculations |
+| `--reader {cif2cell,pymatgen}` | How to read the structure. `cif2cell` (default) runs cif2cell as in earlier versions; `pymatgen` reads the CIF directly and needs no cif2cell |
+| `--cif2cell-output FILE` | Reuse an existing cif2cell output (`cif_scf.in`) instead of running cif2cell |
+| `--output-dir DIR` | Write the inputs into `DIR` (default: the current directory) |
+| `--version` | Print the version |
+
+cif2cell is run in a temporary directory and its output is saved as
+`cif_scf.in` next to the generated inputs. Unlike earlier versions, an
+existing `cif_scf.in` is not picked up automatically; pass it with
+`--cif2cell-output` if you want to reuse it. Errors are reported as
+`cif2qewan: error: ...` with exit status 1.
 
 ### Generated Files
 
 The script generates the following input files:
 
+- `cif_scf.in` - the cif2cell output (not written with `--reader pymatgen`)
 - `scf.in` - SCF calculation input
 - `nscf.in` - NSCF calculation input
 - `pw2wan.in` - pw2wannier90 interface input
 - `pwscf.win` - Wannier90 input
-- `band/` - Band structure calculation files
-- `check_wannier/` - Convergence check files
+- `band/` - Band structure calculation files (`nscf.in`, `band.in`, `proj.in`, `pp.in`)
+- `check_wannier/` - Convergence check files (`nscf.in`)
 
 ## Workflow
 

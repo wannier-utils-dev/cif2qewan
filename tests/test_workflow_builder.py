@@ -2,9 +2,7 @@
 
 ``test_plan_reproduces_the_example`` is the completion criterion: from the
 cif2cell output and the TOML of every reference example, the new
-implementation alone produces all nine input files. The QE inputs match
-byte for byte (after the documented K_POINTS normalization); pwscf.win
-matches block by block and keyword by keyword.
+implementation alone produces all nine input files, byte for byte.
 """
 
 import sys
@@ -32,14 +30,7 @@ from cif2qewan.workflow.builder import (
     plan_from_cif2cell_output,
 )
 from cif2qewan.workflow.render import render_plan
-from conftest import (
-    EXAMPLE_CASES,
-    PACKAGE,
-    example_config,
-    normalize_reference,
-    win_blocks,
-    win_keywords,
-)
+from conftest import EXAMPLE_CASES, PACKAGE, example_config
 
 FE = EXAMPLE_CASES[
     0
@@ -229,14 +220,7 @@ def test_plan_reproduces_the_example(case):
         "band/pp.in",
     }
     for path, text in files.items():
-        reference = (case.reference / path).read_text()
-        if path == "pwscf.win":
-            assert win_blocks(text) == win_blocks(reference), path
-            assert win_keywords(text) == win_keywords(reference), path
-        else:
-            assert text == normalize_reference(
-                path, reference
-            ), f"{case.example}/{path}"
+        assert text == (case.reference / path).read_text(), f"{case.example}/{path}"
 
 
 def test_pymatgen_path_gives_an_equivalent_plan(case):

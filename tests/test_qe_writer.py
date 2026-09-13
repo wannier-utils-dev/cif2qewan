@@ -2,8 +2,7 @@
 
 The models below are written by hand from the values in
 ``examples/PSLibrary/Fe_nonmag``; the rendered text must match the reference
-files byte for byte. The only accepted difference is the normalized
-``K_POINTS {automatic}`` spelling in scf.in (see ``cif2qewan.qe.writer``).
+files byte for byte.
 """
 
 import itertools
@@ -144,9 +143,8 @@ def test_scf_input_matches_the_reference():
     pw = pw_input(
         control("scf"), system(), electrons("1.0d-8"), KPointsAutomatic((21, 21, 21))
     )
-    expected = reference("scf.in").replace("K_POINTS automatic", "K_POINTS {automatic}")
-    assert render_pw_input(pw) == expected
-    assert render(pw) == expected
+    assert render_pw_input(pw) == reference("scf.in")
+    assert render(pw) == reference("scf.in")
 
 
 def test_nscf_input_matches_the_reference():

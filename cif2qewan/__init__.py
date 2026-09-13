@@ -3,8 +3,12 @@ cif2qewan: Quantum ESPRESSO and Wannier90 input generation from CIF files.
 
 Modules
 -------
+cli
+    The ``cif2qewan`` command: reader -> workflow builder -> renderers -> files.
+structure, qe, wannier90, workflow
+    Structure readers, input models, renderers and the scientific policy.
 cif2qewan
-    Generate the Quantum ESPRESSO and Wannier90 input files from a CIF file.
+    Deprecated 0.2.x implementation, kept for existing scripts.
 band_comp
     Compare DFT and Wannier90 band structures.
 wannier_conv

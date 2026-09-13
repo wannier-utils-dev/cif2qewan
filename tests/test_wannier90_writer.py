@@ -1,10 +1,7 @@
 """Tests for the Wannier90 renderer (DEVELOPMENT_PLAN.md Step 5).
 
-The rendered ``.win`` for the Fe_nonmag and Fe_so examples must contain
-the same blocks (projections, cell, atoms, k mesh, k path) and the same
-keyword values as the reference files. The layout of the keyword lines is
-normalized (see ``cif2qewan.wannier90.writer``), so the files are compared
-block by block rather than byte by byte.
+The rendered ``.win`` for the Fe_nonmag and Fe_so examples must match the
+reference files byte for byte.
 """
 
 import itertools
@@ -15,7 +12,7 @@ import pytest
 from cif2qewan.exceptions import InputModelError
 from cif2qewan.wannier90.model import AtomFrac, KPathSegment, Projection, Wannier90Input
 from cif2qewan.wannier90.writer import HEADER, format_parameter, render_win
-from conftest import EXAMPLES, win_blocks, win_keywords
+from conftest import EXAMPLES
 
 ALAT = 2.86304
 BCC = np.array([[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]) * ALAT
@@ -61,15 +58,9 @@ def fe_win(spinors):
 
 
 @pytest.mark.parametrize("example,spinors", [("Fe_nonmag", False), ("Fe_so", True)])
-def test_rendered_win_matches_the_reference_content(example, spinors):
+def test_rendered_win_matches_the_reference(example, spinors):
     reference = (EXAMPLES / "PSLibrary" / example / "pwscf.win").read_text()
-    rendered = render_win(fe_win(spinors))
-
-    assert rendered.startswith(HEADER + "\n")
-    assert win_blocks(rendered) == win_blocks(reference)
-    assert win_keywords(rendered) == win_keywords(reference)
-    assert ("spinors = .true." in rendered) == spinors
-    assert rendered.endswith("end kpoint_path\n")
+    assert render_win(fe_win(spinors)) == reference
 
 
 def test_layout_is_fixed():
