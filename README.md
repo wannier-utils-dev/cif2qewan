@@ -355,6 +355,9 @@ ls -la band/
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+The relationship with cif2x and mcif2qewan, the planned 0.3.0 refactoring,
+and the policy for porting mature Wannier90 features are documented in the
+[Development Plan](DEVELOPMENT_PLAN.md).
 
 ### Development Setup
 
