@@ -20,6 +20,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   (namelists, cards and `PwInput`), `cif2qewan.wannier90.model`
   (`Wannier90Input`), `cif2qewan.workflow.model` (`CalculationPlan`) and
   the exception hierarchy in `cif2qewan.exceptions`.
+- Structure readers (DEVELOPMENT_PLAN.md Step 3), not yet used by the CLI:
+  `cif2qewan.structure.readers` with the `StructureReader` protocol, a
+  `PymatgenReader` for CIF/MCIF and the other pymatgen formats, and a
+  `Cif2cellReader` that runs cif2cell with `subprocess` in a fresh temporary
+  directory (or parses an explicitly given cif2cell output) and raises
+  `ExternalCommandError` on failure. `cif2qewan.structure.compare` checks
+  two structures for physical equivalence (same lattice, same sites up to
+  lattice translations, same magnetic moments) within tolerances.
 
 ## [0.2.0] - 2026-09-12
 
