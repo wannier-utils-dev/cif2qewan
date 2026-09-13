@@ -165,17 +165,6 @@ def test_old_module_entry_point_still_works(tmp_path):
     assert generated_files(tmp_path) == ALL_OUTPUTS
 
 
-def test_old_python_api_warns():
-    import warnings
-
-    from cif2qewan.cif2qewan import qe_wannier_in
-
-    with pytest.raises(Exception), warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        qe_wannier_in("missing.cif", "missing.toml", False, False)
-    assert any(issubclass(w.category, DeprecationWarning) for w in caught)
-
-
 def test_verbose_reports_the_decisions_and_special_paths_work(tmp_path):
     pytest.importorskip("seekpath")
     pytest.importorskip("pymatgen")

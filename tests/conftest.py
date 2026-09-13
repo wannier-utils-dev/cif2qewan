@@ -5,8 +5,8 @@ of the input generator. ``generate`` re-runs the generator on one example in a
 scratch directory; the ``generated`` fixture does this once per example for
 the whole test session so that several test modules can inspect the result.
 
-``cif2cell`` is not needed: ``qe_wannier_in`` reuses an existing
-``cif_scf.in``, and every reference example ships one.
+``cif2cell`` is not needed: the shipped ``cif_scf.in`` of every example is
+passed to the CLI with ``--cif2cell-output``.
 """
 
 import pathlib

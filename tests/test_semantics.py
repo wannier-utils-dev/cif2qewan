@@ -13,7 +13,7 @@ import re
 import numpy as np
 import pytest
 
-from cif2qewan.cif2qewan import pseudo_list
+from cif2qewan.qe.pseudopotential import PseudopotentialTable
 from conftest import PACKAGE
 
 # --------------------------------------------------------------------------
@@ -278,7 +278,7 @@ ORBITAL_SIZE = {"s": 1, "p": 3, "d": 5, "f": 7}
 
 def test_wannier_counts_follow_the_pseudopotential_table(generated):
     case, workdir = generated
-    table = pseudo_list("/nonexistent", str(PACKAGE / case.pp_csv))
+    table = PseudopotentialTable.from_csv(PACKAGE / case.pp_csv)
     win = read(workdir, "pwscf.win")
     species = species_from_qe(read(workdir, "scf.in"))
     atoms = atoms_from_qe(read(workdir, "scf.in"))
@@ -290,10 +290,10 @@ def test_wannier_counts_follow_the_pseudopotential_table(generated):
         projections[element] = orbitals.split(",")
     assert set(projections) == set(species)
     for element, orbitals in projections.items():
-        assert "".join(orbitals) == table.pseudo(element)[2]
+        assert "".join(orbitals) == table.lookup(element).orbitals
 
     num_wann = sum(ORBITAL_SIZE[o] for el, _ in atoms for o in projections[el])
-    nexclude = sum(table.pseudo(el)[1] for el, _ in atoms)
+    nexclude = sum(table.lookup(el).nexclude for el, _ in atoms)
     factor = case.spin_factor
 
     assert int(win_value(win, "num_wann")) == num_wann * factor

@@ -59,7 +59,7 @@ package; point `pp_list_path` in `cif2qewan.toml` at the one you want, for
 example `cif2qewan/pp_psl_rrkj.csv` in the clone.
 
 Without installing, the tools can also be run from a clone as
-`python -m cif2qewan.cif2qewan`, `python -m cif2qewan.band_comp` and
+`python -m cif2qewan.cli`, `python -m cif2qewan.band_comp` and
 `python -m cif2qewan.wannier_conv`.
 
 ## Quick Start
@@ -94,7 +94,7 @@ write_unk = ".true."
 ./submit_all.sh
 
 # Or run step by step
-cif2qewan structure.cif cif2qewan.toml   # or: python -m cif2qewan.cif2qewan structure.cif cif2qewan.toml
+cif2qewan structure.cif cif2qewan.toml   # or: python -m cif2qewan.cli structure.cif cif2qewan.toml
 # ... run QE and Wannier90 calculations ...
 python -m cif2qewan.band_comp -o ./
 ```

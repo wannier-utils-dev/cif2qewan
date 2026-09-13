@@ -1,9 +1,9 @@
-"""Unit tests for the small parsers used by the analysis scripts."""
+"""Unit tests for the parsers of the analysis scripts and the pseudopotential table."""
 
 import pytest
 
 from cif2qewan.band_comp import get_ef_from_scfout, get_froz_max
-from cif2qewan.cif2qewan import pseudo_list
+from cif2qewan.qe.pseudopotential import PseudopotentialTable
 from cif2qewan.wannier_conv import get_nexclude
 
 
@@ -56,24 +56,20 @@ def test_get_nexclude_defaults_to_zero(tmp_path):
 
 def test_pseudo_table_is_read(repo_root):
     """The shipped PSLibrary table maps an element to its pseudopotential."""
-    pslist = pseudo_list(
-        "/nonexistent", str(repo_root / "cif2qewan" / "pp_psl_rrkj.csv")
-    )
-    pp_file, nexclude, orbitals, num_wann, ecutwfc, ecutrho = pslist.pseudo("Fe")
+    table = PseudopotentialTable.from_csv(repo_root / "cif2qewan" / "pp_psl_rrkj.csv")
+    entry = table.lookup("Fe")
 
-    assert pp_file == "Fe.pbe-spn-rrkjus_psl.0.2.1.UPF"
-    assert nexclude == 4
-    assert orbitals == "spd"
-    assert num_wann == 1 + 3 + 5
-    assert ecutwfc == pytest.approx(64.0)
-    assert ecutrho == pytest.approx(782.0)
+    assert entry.file_name == "Fe.pbe-spn-rrkjus_psl.0.2.1.UPF"
+    assert entry.nexclude == 4
+    assert entry.orbitals == "spd"
+    assert entry.num_wann == 1 + 3 + 5
+    assert entry.ecutwfc == pytest.approx(64.0)
+    assert entry.ecutrho == pytest.approx(782.0)
 
 
 def test_num_wann_counts_each_orbital_once(repo_root):
     """s/p/d/f contribute 1/3/5/7 Wannier functions."""
-    pslist = pseudo_list(
-        "/nonexistent", str(repo_root / "cif2qewan" / "pp_psl_rrkj.csv")
-    )
+    table = PseudopotentialTable.from_csv(repo_root / "cif2qewan" / "pp_psl_rrkj.csv")
 
-    assert pslist.pseudo("O")[3] == 3  # p
-    assert pslist.pseudo("Li")[3] == 1  # s
+    assert table.lookup("O").num_wann == 3  # p
+    assert table.lookup("Li").num_wann == 1  # s

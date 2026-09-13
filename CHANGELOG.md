@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.3.0rc1] - 2026-09-13
+
+Release candidate of the 0.3.0 rewrite (DEVELOPMENT_PLAN.md). The command
+line and the numbers in the generated inputs are compatible with 0.2.0;
+the Python API is new.
+
+### Removed
+- The 0.2.x implementation `cif2qewan.cif2qewan.qe_wannier_in` and
+  `cif2qewan.cif2qewan.pseudo_list`. Use `cif2qewan.workflow.builder`
+  (`build_plan`, `WorkflowBuilder`) and
+  `cif2qewan.qe.pseudopotential.PseudopotentialTable`.
+- The `pandas` and `docopt` dependencies (only the removed code used them).
+
+### Migration from 0.2.x
+- Command line: unchanged (`cif2qewan <cif> <toml> [--so] [--mag]`). An
+  existing `cif_scf.in` is no longer picked up silently; pass
+  `--cif2cell-output cif_scf.in` to reuse it, or let cif2cell run.
+- Generated files: only formatting differs (`K_POINTS {automatic}` in
+  scf.in, keyword layout in pwscf.win); regenerate or keep old files, both
+  are valid inputs.
+- Python API: `qe_wannier_in(cif, toml, so, mag)` followed by the write
+  methods becomes
+
+      from cif2qewan.config import Config
+      from cif2qewan.structure.readers import Cif2cellReader
+      from cif2qewan.workflow.builder import plan_from_cif2cell_output
+      from cif2qewan.workflow.render import render_plan
+      from cif2qewan.workflow.output import write_rendered
+
+      config = Config.from_toml("cif2qewan.toml", so=True, mag=True)
+      output = Cif2cellReader(config.cif2cell_path, config.scf_k_resolution).run("x.cif")
+      plan = plan_from_cif2cell_output(output, config)
+      write_rendered(render_plan(plan), ".")
+
+  `python -m cif2qewan.cif2qewan` and `cif2qewan.cif2qewan.main` still work
+  (with a `DeprecationWarning` for the latter) and are removed in 0.4.0.
+
 ### Changed
 - The `cif2qewan` command is now implemented by `cif2qewan.cli` on top of
   the reader / workflow builder / renderer modules (DEVELOPMENT_PLAN.md
@@ -24,8 +61,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Errors in the configuration, the structure, the pseudopotential table or
   cif2cell are reported as `cif2qewan: error: ...` with exit status 1
   instead of a traceback.
-- `cif2qewan` no longer uses `docopt`; the dependency stays until the
-  deprecated module is removed.
 
 - Error handling (DEVELOPMENT_PLAN.md Step 8): `band_comp` and
   `wannier_conv` report missing or unreadable files as `<prog>: error: ...`
@@ -34,9 +69,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   empty data. `cif2qewan -v/--verbose` logs the decisions taken (species and
   pseudopotentials, cutoffs, band counts, k meshes, the cif2cell command);
   the fallback to the simple-cubic band path without seekpath is reported
-  as a warning (0.2.x printed it, the first 0.3 development versions were
-  silent). The deprecated 0.2.x module is unchanged and still uses
-  `os.system`; it is removed in Step 10.
+  as a warning (0.2.x printed it). Nothing in the package calls `os.system`
+  any more.
 
 - Magnetic structures from MagCIF files (DEVELOPMENT_PLAN.md Step 9), with
   `--reader pymatgen`: site moments are kept as Cartesian vectors, sites of
@@ -58,10 +92,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   unchanged.
 
 ### Deprecated
-- `cif2qewan.cif2qewan.qe_wannier_in` and `cif2qewan.cif2qewan.main`
-  (the 0.2.x implementation). `main` delegates to the new CLI;
-  `qe_wannier_in` still works but warns. `python -m cif2qewan.cif2qewan`
-  keeps working. Both will be removed in a later release.
+- `cif2qewan.cif2qewan.main` and `python -m cif2qewan.cif2qewan`: aliases of
+  `cif2qewan.cli.main`, removed in 0.4.0.
 
 ### Added
 - `cif2qewan --reader pymatgen` reads the structure with pymatgen instead

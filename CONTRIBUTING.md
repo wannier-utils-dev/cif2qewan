@@ -118,7 +118,7 @@ pip install flake8
 - [ ] Tests pass locally
 - [ ] Documentation is updated
 - [ ] Commit messages are clear and descriptive
-- [ ] Branch is up to date with main/develop
+- [ ] Branch is up to date with develop (or master for a hotfix)
 
 ### Pull Request Template
 
@@ -206,6 +206,86 @@ flake8 cif2qewan/
 ```
 
 ### Documentation Standards
+
+- **Docstrings**: All functions and classes must have docstrings
+- **Comments**: Complex code should be commented
+- **README**: Keep README.md updated
+- **Type hints**: Use type hints for better documentation
+
+### Example Code Style
+
+```python
+def calculate_energy(
+    k_point: np.ndarray, 
+    hamiltonian: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Calculate band energies at a given k-point.
+    
+    Parameters
+    ----------
+    k_point : np.ndarray
+        K-point coordinates (shape: [3]).
+    hamiltonian : np.ndarray
+        Hamiltonian matrix (shape: [n_bands, n_bands]).
+        
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Eigenvalues and eigenvectors.
+    """
+    eigenvalues, eigenvectors = np.linalg.eigh(hamiltonian)
+    return eigenvalues, eigenvectors
+```
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=cif2qewan --cov-report=html
+
+# Run specific test file
+pytest tests/test_cif2qewan.py
+
+# Run with verbose output
+pytest -v
+```
+
+### Writing Tests
+
+- **Test coverage**: Aim for >80% coverage
+- **Test naming**: Use descriptive test names
+- **Test organization**: Group related tests in classes
+- **Fixtures**: Use pytest fixtures for common setup
+
+### Example Test
+
+```python
+import numpy as np
+
+from cif2qewan.structure.model import AtomicSite, NormalizedStructure
+from cif2qewan.workflow.builder import build_plan
+
+
+def test_nbnd_follows_the_wannier_count(psl_config):
+    """nscf nbnd = nexclude + 3 * num_wann for a non-magnetic structure."""
+    fe = NormalizedStructure(np.eye(3) * 2.87, (AtomicSite("Fe", (0, 0, 0)),))
+    plan = build_plan(fe, psl_config)
+    assert plan.nscf.system.entries["nbnd"] == 4 + 3 * 9
+```
+
+Tests must not need Quantum ESPRESSO, Wannier90, cif2cell or a
+pseudopotential directory; the reference examples under `examples/` are
+regenerated through the CLI with `--cif2cell-output` (see `tests/conftest.py`).
+Any change to a generated file makes `tests/test_examples.py` fail; if the
+change is intended, regenerate the examples and describe the diff in the PR.
+
+## Documentation Standards
 
 - **Docstrings**: All functions and classes must have docstrings
 - **Comments**: Complex code should be commented
