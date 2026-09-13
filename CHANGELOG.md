@@ -37,6 +37,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   CLI: `cif2qewan.wannier90.writer.render_win` turns a `Wannier90Input`
   into `.win` text with the 0.2.x numeric formats and a fixed layout
   (counts, `spinors`, pass-through parameters, then the blocks).
+- Workflow layer (DEVELOPMENT_PLAN.md Step 6), not yet used by the CLI:
+  `cif2qewan.config.Config` (TOML + `--so`/`--mag`),
+  `cif2qewan.qe.pseudopotential.PseudopotentialTable` (the CSV tables, read
+  with the standard library), `cif2qewan.qe.kpoints` (SCF mesh from the
+  k resolution with cif2cell's rule, the [4, 8] NSCF mesh, the seekpath band
+  path with the simple-cubic fallback) and
+  `cif2qewan.workflow.builder.WorkflowBuilder`, which turns a structure and
+  a `Config` into a `CalculationPlan` with the 0.2.x conventions, including
+  the two-step `--mag` policy. `cif2qewan.workflow.render.render_plan`
+  renders every input of a plan. From the cif2cell output of each reference
+  example the new code reproduces all QE inputs byte for byte (after the
+  `K_POINTS` normalization) and pwscf.win up to layout.
+- The band-path divisions are now `floor(10 * L / L_min + 1e-6)` instead of
+  `int(10 * L / L_min)`, so that a ratio that is an integer up to
+  floating-point noise is not truncated to the integer below. Identical for
+  the reference examples.
 
 ## [0.2.0] - 2026-09-12
 

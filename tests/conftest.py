@@ -12,6 +12,7 @@ the whole test session so that several test modules can inspect the result.
 import os
 import pathlib
 import re
+import toml
 import shutil
 import sys
 from typing import NamedTuple
@@ -114,3 +115,37 @@ def generated(request, tmp_path_factory):
     workdir = tmp_path_factory.mktemp(case.example.replace("/", "_"))
     generate(case, workdir)
     return case, workdir
+
+
+def example_config(case, so=None, mag=None):
+    """The example's Config with pp_list_path pointed at this checkout."""
+    from cif2qewan.config import Config
+
+    data = toml.load(case.reference / "cif2qewan.toml")
+    data["pp_list_path"] = str(PACKAGE / case.pp_csv)
+    return Config.from_dict(
+        data,
+        so=case.so if so is None else so,
+        mag=case.mag if mag is None else mag,
+    )
+
+
+def win_blocks(text):
+    """name -> list of lines for every begin/end block of a .win file."""
+    return {
+        name: body.strip("\n").splitlines()
+        for name, body in re.findall(r"begin (\w+)\n(.*?)end \1", text, re.S)
+    }
+
+
+def win_keywords(text):
+    """key -> value for every ``key = value`` / ``key: value`` line outside blocks."""
+    outside = re.sub(r"begin (\w+)\n.*?end \1\n", "", text, flags=re.S)
+    return dict(re.findall(r"^(\w+)\s*[=:]\s*(.*?)\s*$", outside, re.M))
+
+
+def normalize_reference(path, text):
+    """Reference text with the documented 0.3 formatting normalizations applied."""
+    if path == "scf.in":
+        text = text.replace("K_POINTS automatic", "K_POINTS {automatic}")
+    return text

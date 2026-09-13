@@ -24,14 +24,24 @@ from cif2qewan.exceptions import StructureError
 Vector3 = Tuple[float, float, float]
 Matrix3 = Tuple[Vector3, Vector3, Vector3]
 
-# Element symbols 1-118, used to validate site species.
-ELEMENT_SYMBOLS = frozenset("""
+#: Element symbols in order of atomic number (index + 1 = Z).
+ELEMENTS = tuple("""
     H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni
     Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe
     Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg
     Tl Pb Bi Po At Rn Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg
     Bh Hs Mt Ds Rg Cn Nh Fl Mc Lv Ts Og
     """.split())
+ELEMENT_SYMBOLS = frozenset(ELEMENTS)
+
+
+def atomic_number(symbol: str) -> int:
+    """Atomic number of an element symbol; raises StructureError if unknown."""
+    try:
+        return ELEMENTS.index(symbol) + 1
+    except ValueError:
+        raise StructureError(f"unknown element symbol {symbol!r}") from None
+
 
 #: Below this magnitude (in Bohr magneton) a moment is treated as zero.
 MOMENT_TOLERANCE = 1.0e-3

@@ -8,7 +8,6 @@ block by block rather than byte by byte.
 """
 
 import itertools
-import re
 
 import numpy as np
 import pytest
@@ -16,7 +15,7 @@ import pytest
 from cif2qewan.exceptions import InputModelError
 from cif2qewan.wannier90.model import AtomFrac, KPathSegment, Projection, Wannier90Input
 from cif2qewan.wannier90.writer import HEADER, format_parameter, render_win
-from conftest import EXAMPLES
+from conftest import EXAMPLES, win_blocks, win_keywords
 
 ALAT = 2.86304
 BCC = np.array([[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]) * ALAT
@@ -61,28 +60,14 @@ def fe_win(spinors):
     )
 
 
-def blocks(text):
-    """name -> list of lines for every begin/end block."""
-    return {
-        name: body.strip("\n").splitlines()
-        for name, body in re.findall(r"begin (\w+)\n(.*?)end \1", text, re.S)
-    }
-
-
-def keywords(text):
-    """key -> value for every ``key = value`` / ``key: value`` line outside blocks."""
-    outside = re.sub(r"begin (\w+)\n.*?end \1\n", "", text, flags=re.S)
-    return dict(re.findall(r"^(\w+)\s*[=:]\s*(.*?)\s*$", outside, re.M))
-
-
 @pytest.mark.parametrize("example,spinors", [("Fe_nonmag", False), ("Fe_so", True)])
 def test_rendered_win_matches_the_reference_content(example, spinors):
     reference = (EXAMPLES / "PSLibrary" / example / "pwscf.win").read_text()
     rendered = render_win(fe_win(spinors))
 
     assert rendered.startswith(HEADER + "\n")
-    assert blocks(rendered) == blocks(reference)
-    assert keywords(rendered) == keywords(reference)
+    assert win_blocks(rendered) == win_blocks(reference)
+    assert win_keywords(rendered) == win_keywords(reference)
     assert ("spinors = .true." in rendered) == spinors
     assert rendered.endswith("end kpoint_path\n")
 
