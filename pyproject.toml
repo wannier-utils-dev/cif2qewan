@@ -58,8 +58,8 @@ cif2qewan = "cif2qewan.cif2qewan:main"
 band_comp = "cif2qewan.band_comp:main"
 wannier_conv = "cif2qewan.wannier_conv:main"
 
-[tool.setuptools]
-packages = ["cif2qewan"]
+[tool.setuptools.packages.find]
+include = ["cif2qewan*"]
 
 [tool.setuptools.package-data]
 cif2qewan = ["*.csv"]

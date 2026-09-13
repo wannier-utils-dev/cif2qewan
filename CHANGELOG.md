@@ -14,6 +14,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   Step 1): the physical content of the generated inputs (spin settings per
   option, k-mesh relations, cell and atoms shared by QE and Wannier90, band
   and Wannier-function counts) and the CLI exit status for invalid inputs.
+- Typed internal models (DEVELOPMENT_PLAN.md Step 2), not yet used by the
+  CLI: `cif2qewan.structure.model` (`NormalizedStructure`, `AtomicSite`,
+  Cartesian `MagneticMoment` in Bohr magneton), `cif2qewan.qe.model`
+  (namelists, cards and `PwInput`), `cif2qewan.wannier90.model`
+  (`Wannier90Input`), `cif2qewan.workflow.model` (`CalculationPlan`) and
+  the exception hierarchy in `cif2qewan.exceptions`.
 
 ## [0.2.0] - 2026-09-12
 
