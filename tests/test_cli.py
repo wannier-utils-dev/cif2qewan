@@ -174,3 +174,41 @@ def test_old_python_api_warns():
         warnings.simplefilter("always")
         qe_wannier_in("missing.cif", "missing.toml", False, False)
     assert any(issubclass(w.category, DeprecationWarning) for w in caught)
+
+
+def test_verbose_reports_the_decisions_and_special_paths_work(tmp_path):
+    pytest.importorskip("seekpath")
+    pytest.importorskip("pymatgen")
+    workdir = tmp_path / "Fe (bcc) ü"
+    workdir.mkdir()
+    shutil.copy(FE.reference / "cif_scf.in", workdir / "cif scf.in")
+    write_example_toml(FE, workdir)
+    result = run_cli(
+        [
+            "x.cif",
+            str(workdir / "cif2qewan.toml"),
+            "--cif2cell-output",
+            str(workdir / "cif scf.in"),
+            "--output-dir",
+            str(workdir / "out dir"),
+            "--verbose",
+        ],
+        tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "cif2qewan: INFO:" in result.stderr
+    assert "scf mesh 21x21x21, nscf mesh 8x8x8" in result.stderr
+    assert generated_files(workdir / "out dir") == ALL_OUTPUTS
+    # without --verbose the decisions are not reported
+    quiet = run_cli(
+        [
+            "x.cif",
+            str(workdir / "cif2qewan.toml"),
+            "--cif2cell-output",
+            str(workdir / "cif scf.in"),
+            "--output-dir",
+            str(workdir / "quiet"),
+        ],
+        tmp_path,
+    )
+    assert quiet.returncode == 0 and "INFO" not in quiet.stderr

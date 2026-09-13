@@ -30,6 +30,10 @@ class PseudopotentialError(Cif2qewanError):
     """No usable pseudopotential or projection information for an element."""
 
 
+class DataFileError(Cif2qewanError):
+    """A QE or Wannier90 output file (scf.out, *_hr.dat, ...) is missing or malformed."""
+
+
 class ExternalCommandError(Cif2qewanError):
     """An external program (cif2cell, ...) failed or produced no output.
 

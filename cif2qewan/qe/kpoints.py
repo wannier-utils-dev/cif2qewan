@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import logging
 import math
 from typing import List, Sequence, Tuple
 
@@ -13,6 +14,8 @@ from cif2qewan.structure.model import NormalizedStructure, atomic_number
 from cif2qewan.wannier90.model import KPathSegment
 
 Mesh = Tuple[int, int, int]
+
+logger = logging.getLogger(__name__)
 
 #: Bounds of the NSCF (Wannier90) mesh per direction.
 NSCF_MESH_MIN = 4
@@ -100,6 +103,9 @@ def band_path(structure: NormalizedStructure) -> Tuple[KPointsPath, bool]:
     """
     seekpath = _seekpath()
     if seekpath is None:
+        logger.warning(
+            "seekpath >= 2.1 is not available; using the simple-cubic R-G-X-M-G band path"
+        )
         return fallback_band_path(), False
 
     cell = structure.lattice_matrix.tolist()

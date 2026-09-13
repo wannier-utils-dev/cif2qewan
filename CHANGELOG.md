@@ -27,6 +27,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `cif2qewan` no longer uses `docopt`; the dependency stays until the
   deprecated module is removed.
 
+- Error handling (DEVELOPMENT_PLAN.md Step 8): `band_comp` and
+  `wannier_conv` report missing or unreadable files as `<prog>: error: ...`
+  with exit status 1 instead of a traceback; the Wannier90 Hamiltonian
+  reader raises `DataFileError` instead of printing and continuing with
+  empty data. `cif2qewan -v/--verbose` logs the decisions taken (species and
+  pseudopotentials, cutoffs, band counts, k meshes, the cif2cell command);
+  the fallback to the simple-cubic band path without seekpath is reported
+  as a warning (0.2.x printed it, the first 0.3 development versions were
+  silent). The deprecated 0.2.x module is unchanged and still uses
+  `os.system`; it is removed in Step 10.
+
 ### Deprecated
 - `cif2qewan.cif2qewan.qe_wannier_in` and `cif2qewan.cif2qewan.main`
   (the 0.2.x implementation). `main` delegates to the new CLI;

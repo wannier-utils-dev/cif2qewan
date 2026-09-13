@@ -9,6 +9,7 @@ directory with an argument list, and any failure raises
 
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 import tempfile
@@ -23,6 +24,8 @@ from cif2qewan.structure.model import AtomicSite, NormalizedStructure
 from cif2qewan.structure.readers.base import PathLike
 
 BOHR_IN_ANGSTROM = 0.529177210903
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -237,6 +240,7 @@ class Cif2cellReader:
         with tempfile.TemporaryDirectory(prefix="cif2qewan-cif2cell-") as tmp:
             output = Path(tmp) / self.output_name
             command = self.command(cif_path, output)
+            logger.info("running %s", " ".join(command))
             try:
                 completed = subprocess.run(
                     command,
@@ -254,6 +258,8 @@ class Cif2cellReader:
                 raise ExternalCommandError(
                     command, message=f"cif2cell did not finish within {self.timeout} s"
                 ) from exc
+            if completed.stderr:
+                logger.debug("cif2cell stderr:\n%s", completed.stderr.rstrip())
             if completed.returncode != 0:
                 raise ExternalCommandError(
                     command, completed.returncode, completed.stderr

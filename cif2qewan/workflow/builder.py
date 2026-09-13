@@ -15,6 +15,7 @@ the fully relativistic pseudopotentials when ``--so`` is also given.
 
 from __future__ import annotations
 
+import logging
 import warnings
 from dataclasses import dataclass
 from typing import Dict, Mapping, Optional, Tuple
@@ -49,6 +50,8 @@ from cif2qewan.structure.model import NormalizedStructure
 from cif2qewan.structure.readers.cif2cell import Cif2cellOutput
 from cif2qewan.wannier90.model import AtomFrac, Projection, Wannier90Input
 from cif2qewan.workflow.model import CalculationPlan
+
+logger = logging.getLogger(__name__)
 
 PREFIX = "pwscf"
 OUTDIR = "./work"
@@ -178,6 +181,18 @@ class WorkflowBuilder:
         )
         kmesh_nscf = nscf_mesh(kmesh_scf)
         path, _ = band_path(structure)
+        logger.info(
+            "species %s; ecutwfc %g Ry, ecutrho %g Ry; num_wann %d, nexclude %d (per spin); "
+            "scf mesh %s, nscf mesh %s, %d band-path vertices",
+            ", ".join(f"{label}:{entries[label].file_name}" for label in labels),
+            ecutwfc,
+            ecutrho,
+            counts.num_wann,
+            counts.nexclude,
+            "x".join(map(str, kmesh_scf)),
+            "x".join(map(str, kmesh_nscf)),
+            path.num_points,
+        )
 
         def species(relativistic: bool) -> Tuple[Species, ...]:
             return tuple(

@@ -14,6 +14,7 @@ lives in :mod:`cif2qewan.workflow.builder`.
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import List, Optional, Sequence
@@ -60,9 +61,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="where to write the inputs (default: .)",
     )
     parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="report the decisions taken (k meshes, cutoffs, ...)",
+    )
+    parser.add_argument(
         "--version", action="version", version=f"cif2qewan {__version__}"
     )
     return parser
+
+
+def configure_logging(verbose: bool) -> None:
+    """Send the package's log messages to stderr; INFO with --verbose, else WARNING."""
+    logger = logging.getLogger("cif2qewan")
+    logger.setLevel(logging.INFO if verbose else logging.WARNING)
+    if not any(getattr(h, "_cif2qewan_cli", False) for h in logger.handlers):
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(logging.Formatter("cif2qewan: %(levelname)s: %(message)s"))
+        handler._cif2qewan_cli = True  # type: ignore[attr-defined]
+        logger.addHandler(handler)
 
 
 def run(args: argparse.Namespace) -> List[str]:
@@ -101,6 +119,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     """Entry point of the ``cif2qewan`` console script."""
     parser = build_parser()
     args = parser.parse_args(argv)
+    configure_logging(args.verbose)
     try:
         written = run(args)
     except Cif2qewanError as exc:
