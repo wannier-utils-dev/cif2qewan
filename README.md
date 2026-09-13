@@ -156,6 +156,21 @@ existing `cif_scf.in` is not picked up automatically; pass it with
 `--cif2cell-output` if you want to reuse it. Errors are reported as
 `cif2qewan: error: ...` with exit status 1.
 
+### Magnetic structures (MagCIF)
+
+With `--reader pymatgen` a MagCIF (`.mcif`) file is read including the site
+moments. Sites of one element with different moments become separate QE
+species (`Mn1`, `Mn2`, ...), and `starting_magnetization(i)`, `angle1(i)` and
+`angle2(i)` are set from the moments (relative to the largest one). A
+collinear structure is run like `--mag` (collinear SCF, noncollinear NSCF
+with `lforcet`), a noncollinear one is noncollinear from the SCF on; add
+`--so` for spin-orbit coupling. The Wannier functions are spinors in both
+cases. Moments in the file take precedence over `--mag`.
+
+```bash
+cif2qewan Mn3Sn.mcif cif2qewan.toml --so --reader pymatgen
+```
+
 ### Generated Files
 
 The script generates the following input files:

@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
 
 from cif2qewan.exceptions import StructureError
 from cif2qewan.structure.model import AtomicSite, MagneticMoment, NormalizedStructure
 from cif2qewan.structure.readers.base import PathLike
+
+logger = logging.getLogger(__name__)
 
 
 class PymatgenReader:
@@ -51,15 +54,46 @@ class PymatgenReader:
         return self.from_pymatgen(structure)
 
     def _primitive(self, structure):
+        """Primitive cell that preserves the magnetic structure, else the input.
+
+        pymatgen's symmetry search ignores site properties, so the chemical
+        primitive cell can fold sites with different moments onto each other
+        (an antiferromagnet). The candidate cell is accepted only when every
+        original site maps onto a candidate site with an equivalent moment.
+        """
         from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
+        magmoms = structure.site_properties.get("magmom")
+        chemical = (
+            structure.copy(site_properties={"magmom": None})
+            if magmoms is not None
+            else structure
+        )
         try:
-            primitive = SpacegroupAnalyzer(
-                structure, symprec=self.symprec
+            candidate = SpacegroupAnalyzer(
+                chemical, symprec=self.symprec
             ).find_primitive()
         except Exception as exc:
             raise StructureError(f"primitive cell search failed: {exc}") from exc
-        return primitive if primitive is not None else structure
+        if candidate is None:
+            return structure
+        if len(candidate) == len(structure):
+            return structure  # already primitive: keep the input's lattice vectors
+        if magmoms is None:
+            return candidate
+
+        moments = [_magnetic_moment(m) for m in magmoms]
+        assigned = _fold_moments(structure, moments, candidate, self.symprec)
+        if assigned is None:
+            logger.info(
+                "keeping the %d-site cell: the primitive cell would fold different moments",
+                len(structure),
+            )
+            return structure
+        candidate = candidate.copy(
+            site_properties={"magmom": [m.vector for m in assigned]}
+        )
+        return candidate
 
     @staticmethod
     def from_pymatgen(structure) -> NormalizedStructure:
@@ -108,3 +142,34 @@ def _magnetic_moment(value) -> Optional[MagneticMoment]:
     except Exception as exc:
         raise StructureError(f"cannot interpret magnetic moment {value!r}") from exc
     return MagneticMoment(tuple(float(x) for x in vector))
+
+
+def _fold_moments(
+    structure, moments, candidate, symprec: float
+) -> Optional[List[MagneticMoment]]:
+    """Moments of the candidate sites, or None if the folding is inconsistent."""
+    inverse = np.linalg.inv(candidate.lattice.matrix)
+    candidate_frac = np.array([site.frac_coords for site in candidate])
+    assigned: List[Optional[MagneticMoment]] = [None] * len(candidate)
+    for site, moment in zip(structure, moments):
+        frac = site.coords @ inverse
+        delta = candidate_frac - frac
+        delta -= np.rint(delta)
+        cart = np.abs(delta @ candidate.lattice.matrix)
+        matches = [
+            j
+            for j in range(len(candidate))
+            if np.max(cart[j]) <= max(symprec, 1e-6)
+            and candidate[j].species == site.species
+        ]
+        if len(matches) != 1:
+            return None
+        j = matches[0]
+        moment = moment if moment is not None else MagneticMoment.zero()
+        if assigned[j] is None:
+            assigned[j] = moment
+        elif not assigned[j].is_equivalent(moment):
+            return None
+    if any(m is None for m in assigned):
+        return None
+    return assigned  # type: ignore[return-value]

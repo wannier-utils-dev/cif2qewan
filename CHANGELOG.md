@@ -38,6 +38,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   silent). The deprecated 0.2.x module is unchanged and still uses
   `os.system`; it is removed in Step 10.
 
+- Magnetic structures from MagCIF files (DEVELOPMENT_PLAN.md Step 9), with
+  `--reader pymatgen`: site moments are kept as Cartesian vectors, sites of
+  one element are split into species by moment within a tolerance (`Mn1`,
+  `Mn2`, ...; never by exact floating-point equality), the order is
+  classified as collinear (moments parallel or antiparallel within 5
+  degrees) or noncollinear, and QE receives `starting_magnetization(i)`
+  relative to the largest moment plus `angle1(i)` / `angle2(i)`. A
+  collinear order follows the two-step scheme of `--mag` (collinear SCF,
+  noncollinear NSCF with `lforcet`) with the sign of each moment; a
+  noncollinear order is run noncollinear from the SCF on. Wannier90 gets
+  `spinors = .true.` and one projection line per magnetic species. Moments
+  in the structure take precedence over `--mag`. The primitive-cell
+  reduction of the pymatgen reader keeps the input cell when the chemical
+  primitive cell would fold sites with different moments (antiferromagnets)
+  and keeps the input lattice vectors when the cell is already primitive.
+  `tests/fixtures/Mn3Sn.mcif` (Bilbao MAGNDATA) is the noncollinear test
+  case. The ferromagnetic `--mag` policy for structures without moments is
+  unchanged.
+
 ### Deprecated
 - `cif2qewan.cif2qewan.qe_wannier_in` and `cif2qewan.cif2qewan.main`
   (the 0.2.x implementation). `main` delegates to the new CLI;

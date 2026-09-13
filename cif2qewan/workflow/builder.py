@@ -2,15 +2,24 @@
 
 This module holds the scientific policy of cif2qewan: which pseudopotential
 and cutoffs to use, how many bands and Wannier functions, which k meshes,
-and how the ``--so`` / ``--mag`` options translate into QE settings. The
-numbers reproduce the 0.2.x generator; the conventions are listed in
-CLAUDE.md under "Architecture notes" and must not change silently.
+and how the ``--so`` / ``--mag`` options and the magnetic moments of the
+structure translate into QE settings. The numbers reproduce the 0.2.x
+generator; the conventions are listed in CLAUDE.md under "Architecture
+notes" and must not change silently.
 
-Magnetism policy (``--mag``): a ferromagnetic starting guess of
-``STARTING_MAGNETIZATION`` on every species. The SCF is run collinear
-(``nspin = 2``, scalar-relativistic pseudopotentials); from the NSCF on the
-run is noncollinear with ``lforcet = .true.`` and the moment along z, with
-the fully relativistic pseudopotentials when ``--so`` is also given.
+Magnetism policy:
+
+- ``--mag`` without moments in the structure: a ferromagnetic starting guess
+  of ``STARTING_MAGNETIZATION`` on every species. The SCF is run collinear
+  (``nspin = 2``, scalar-relativistic pseudopotentials); from the NSCF on
+  the run is noncollinear with ``lforcet = .true.`` and the moment along z,
+  with the fully relativistic pseudopotentials when ``--so`` is also given.
+- Moments in the structure (MCIF): species are split by moment
+  (:mod:`cif2qewan.structure.magnetism`) and ``starting_magnetization`` is
+  the moment relative to the largest one. A collinear order follows the
+  two-step scheme above with the sign and the common axis of the moments; a
+  noncollinear order is run noncollinear from the SCF on with ``angle1`` /
+  ``angle2`` per species. Either way the Wannier functions are spinors.
 """
 
 from __future__ import annotations
@@ -46,6 +55,14 @@ from cif2qewan.qe.model import (
     Species,
 )
 from cif2qewan.qe.pseudopotential import PseudopotentialEntry, PseudopotentialTable
+from cif2qewan.structure.magnetism import (
+    COLLINEAR,
+    NONMAGNETIC,
+    QEMagnetization,
+    classify_magnetic_sites,
+    magnetic_order,
+    qe_magnetization,
+)
 from cif2qewan.structure.model import NormalizedStructure
 from cif2qewan.structure.readers.cif2cell import Cif2cellOutput
 from cif2qewan.wannier90.model import AtomFrac, Projection, Wannier90Input
@@ -134,6 +151,120 @@ class WannierCounts:
         return (self.nexclude + int(CHECK_BANDS_PER_WANN * self.num_wann)) * self.factor
 
 
+class SpinPolicy:
+    """The &system spin settings of the SCF and NSCF runs.
+
+    Parameters
+    ----------
+    order : str
+        Magnetic order of the structure (``nonmagnetic`` when it has no moments).
+    magnetization : mapping
+        Species label -> :class:`QEMagnetization` from the structure's moments.
+    so, mag : bool
+        The command-line options.
+    """
+
+    def __init__(
+        self,
+        order: str,
+        magnetization: Mapping[str, QEMagnetization],
+        so: bool,
+        mag: bool,
+    ) -> None:
+        self.order = order
+        self.magnetization = dict(magnetization)
+        self.so = bool(so)
+        self.mag = bool(mag)
+
+    @property
+    def from_structure(self) -> bool:
+        return self.order != NONMAGNETIC
+
+    @property
+    def spinor(self) -> bool:
+        return self.so or self.mag or self.from_structure
+
+    @property
+    def collinear_scf(self) -> bool:
+        """The SCF is a collinear nspin = 2 run (ferromagnetic guess or collinear order)."""
+        if self.from_structure:
+            return self.order == COLLINEAR
+        return self.mag
+
+    @property
+    def scf_relativistic(self) -> bool:
+        return self.so and not self.collinear_scf
+
+    @property
+    def nscf_relativistic(self) -> bool:
+        return self.so
+
+    def scf(self, labels) -> Dict:
+        if self.from_structure:
+            if self.order == COLLINEAR:
+                spin: Dict = {"nspin": 2}
+                spin.update(self._magnitudes(labels))
+                return spin
+            spin = {"lspinorb": self.so, "noncolin": True}
+            spin.update(self._magnitudes(labels))
+            spin.update(self._angles(labels))
+            return spin
+        if self.mag:
+            spin = {"nspin": 2}
+            spin.update(self._ferromagnetic(labels))
+            return spin
+        if self.so:
+            return {"lspinorb": True, "noncolin": True}
+        return {}
+
+    def nscf(self, labels) -> Dict:
+        if self.from_structure:
+            spin: Dict = {"lspinorb": self.so, "noncolin": True}
+            if self.order == COLLINEAR:
+                spin["lforcet"] = True
+            spin.update(self._magnitudes(labels))
+            spin.update(self._angles(labels))
+            return spin
+        if self.mag:
+            spin = {
+                "lspinorb": self.so,
+                "noncolin": True,
+                "lforcet": True,
+                "angle1": 0,
+                "angle2": 0,
+            }
+            spin.update(self._ferromagnetic(labels))
+            return spin
+        if self.so:
+            return {"lspinorb": True, "noncolin": True}
+        return {}
+
+    @staticmethod
+    def _ferromagnetic(labels) -> Dict:
+        return {
+            f"starting_magnetization({i + 1})": STARTING_MAGNETIZATION
+            for i in range(len(labels))
+        }
+
+    def _magnitudes(self, labels) -> Dict:
+        return {
+            f"starting_magnetization({i + 1})": RawValue(
+                f"{self.magnetization[label].starting_magnetization:.4f}"
+            )
+            for i, label in enumerate(labels)
+        }
+
+    def _angles(self, labels) -> Dict:
+        angles: Dict = {}
+        for i, label in enumerate(labels):
+            m = self.magnetization[label]
+            if m.is_zero:
+                continue
+            angles[f"angle1({i + 1})"] = RawValue(f"{m.angle1:.4f}")
+            angles[f"angle2({i + 1})"] = RawValue(f"{m.angle2:.4f}")
+        return angles
+
+
 class WorkflowBuilder:
     """Turn a structure and a configuration into a CalculationPlan."""
 
@@ -155,6 +286,19 @@ class WorkflowBuilder:
         hints = hints or StructureHints()
         config = self.config
 
+        order = magnetic_order(structure)
+        if order != NONMAGNETIC:
+            structure, magnetic_species = classify_magnetic_sites(structure)
+            magnetization = qe_magnetization(magnetic_species, order)
+            logger.info(
+                "%s magnetic order from the structure; species %s",
+                order,
+                ", ".join(f"{sp.label}({sp.count})" for sp in magnetic_species),
+            )
+        else:
+            magnetization = {}
+        spin = SpinPolicy(order, magnetization, so=config.so, mag=config.mag)
+
         labels = self._species_labels(structure, hints)
         entries = {
             label: self.table.lookup(self._element_of(structure, label))
@@ -162,7 +306,7 @@ class WorkflowBuilder:
         }
         masses = self._masses(structure, labels, hints)
         ecutwfc, ecutrho = self._cutoffs(entries.values())
-        counts = self._counts(structure, entries)
+        counts = self._counts(structure, entries, spin.spinor)
 
         alat = (
             hints.alat
@@ -219,9 +363,9 @@ class WorkflowBuilder:
 
         scf = pw_input(
             self._control("scf"),
-            self._system(base_system, first={}, spin=self._scf_spin(len(labels))),
+            self._system(base_system, first={}, spin=spin.scf(labels)),
             CONV_THR_SCF,
-            relativistic=config.so and not config.mag,
+            relativistic=spin.scf_relativistic,
             kpoints=KPointsAutomatic(kmesh_scf),
         )
         nscf = pw_input(
@@ -229,33 +373,29 @@ class WorkflowBuilder:
             self._system(
                 base_system,
                 first={"nosym": True, "nbnd": counts.nbnd_nscf},
-                spin=self._nscf_spin(len(labels)),
+                spin=spin.nscf(labels),
             ),
             CONV_THR_NSCF,
-            relativistic=config.so,
+            relativistic=spin.nscf_relativistic,
             kpoints=mesh_kpoints_list(kmesh_nscf),
         )
         check_wannier = pw_input(
             self._control("nscf", verbosity="high"),
             self._system(
-                base_system,
-                first={"nbnd": counts.nbnd_check},
-                spin=self._nscf_spin(len(labels)),
+                base_system, first={"nbnd": counts.nbnd_check}, spin=spin.nscf(labels)
             ),
             CONV_THR_CHECK,
-            relativistic=config.so,
+            relativistic=spin.nscf_relativistic,
             kpoints=KPointsAutomatic(kmesh_nscf, (1, 1, 1)),
         )
         # The bands run inherits the check_wannier settings (0.2.x behaviour).
         bands_nscf = pw_input(
             self._control("bands", verbosity="high"),
             self._system(
-                base_system,
-                first={"nbnd": counts.nbnd_check},
-                spin=self._nscf_spin(len(labels)),
+                base_system, first={"nbnd": counts.nbnd_check}, spin=spin.nscf(labels)
             ),
             CONV_THR_CHECK,
-            relativistic=config.so,
+            relativistic=spin.nscf_relativistic,
             kpoints=path,
         )
 
@@ -301,11 +441,16 @@ class WorkflowBuilder:
         labels = structure.species_labels
         if hints.masses is not None:
             listed = tuple(hints.masses)
-            if set(listed) != set(labels):
+            if set(listed) == set(labels):
+                return listed  # keep the source's ATOMIC_SPECIES order
+            elements = {
+                WorkflowBuilder._element_of(structure, label) for label in labels
+            }
+            if not elements <= set(listed):
                 raise InputModelError(
-                    f"species {sorted(listed)} from the structure source do not match the sites {sorted(labels)}"
+                    f"species {sorted(listed)} from the structure source do not match "
+                    f"the sites {sorted(labels)}"
                 )
-            return listed  # keep the source's ATOMIC_SPECIES order
         return labels
 
     @staticmethod
@@ -316,11 +461,16 @@ class WorkflowBuilder:
         raise InputModelError(f"no site with label {label!r}")
 
     def _masses(self, structure, labels, hints) -> Dict[str, float]:
-        if hints.masses is not None:
-            return {label: float(hints.masses[label]) for label in labels}
-        return {
-            label: atomic_mass(self._element_of(structure, label)) for label in labels
-        }
+        masses = {}
+        for label in labels:
+            element = self._element_of(structure, label)
+            if hints.masses is not None and label in hints.masses:
+                masses[label] = float(hints.masses[label])
+            elif hints.masses is not None and element in hints.masses:
+                masses[label] = float(hints.masses[element])
+            else:
+                masses[label] = atomic_mass(element)
+        return masses
 
     @staticmethod
     def _cutoffs(entries) -> Tuple[float, float]:
@@ -336,6 +486,7 @@ class WorkflowBuilder:
         self,
         structure: NormalizedStructure,
         entries: Mapping[str, PseudopotentialEntry],
+        spinor: bool,
     ) -> WannierCounts:
         num_wann = sum(entries[site.label].num_wann for site in structure.sites)
         nexclude = sum(entries[site.label].nexclude for site in structure.sites)
@@ -343,7 +494,7 @@ class WorkflowBuilder:
             raise InputModelError(
                 "no Wannier projections: every species has an empty orbitals entry"
             )
-        return WannierCounts(num_wann, nexclude, self.config.spinor)
+        return WannierCounts(num_wann, nexclude, spinor)
 
     # -- namelists ----------------------------------------------------------
 
@@ -381,37 +532,6 @@ class WorkflowBuilder:
         entries.update(base)
         entries.update(spin)
         return Namelist("system", entries)
-
-    def _scf_spin(self, ntyp: int) -> Dict:
-        if self.config.mag:
-            spin: Dict = {"nspin": 2}
-            spin.update(self._starting_magnetization(ntyp))
-            return spin
-        if self.config.so:
-            return {"lspinorb": True, "noncolin": True}
-        return {}
-
-    def _nscf_spin(self, ntyp: int) -> Dict:
-        if self.config.mag:
-            spin: Dict = {
-                "lspinorb": bool(self.config.so),
-                "noncolin": True,
-                "lforcet": True,
-                "angle1": 0,
-                "angle2": 0,
-            }
-            spin.update(self._starting_magnetization(ntyp))
-            return spin
-        if self.config.so:
-            return {"lspinorb": True, "noncolin": True}
-        return {}
-
-    @staticmethod
-    def _starting_magnetization(ntyp: int) -> Dict:
-        return {
-            f"starting_magnetization({i + 1})": STARTING_MAGNETIZATION
-            for i in range(ntyp)
-        }
 
     @staticmethod
     def _electrons(conv_thr: str) -> Namelist:
@@ -512,6 +632,7 @@ def plan_from_cif2cell_output(
 
 __all__ = [
     "STARTING_MAGNETIZATION",
+    "SpinPolicy",
     "StructureHints",
     "WannierCounts",
     "WorkflowBuilder",
