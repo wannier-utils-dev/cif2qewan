@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   text with the 0.2.x formatting. It always writes the `K_POINTS` option in
   braces (`K_POINTS {automatic}`); 0.2.x copied `K_POINTS automatic` from
   cif2cell for scf.in. Both spellings are accepted by pw.x.
+- Wannier90 renderer (DEVELOPMENT_PLAN.md Step 5), not yet used by the
+  CLI: `cif2qewan.wannier90.writer.render_win` turns a `Wannier90Input`
+  into `.win` text with the 0.2.x numeric formats and a fixed layout
+  (counts, `spinors`, pass-through parameters, then the blocks).
 
 ## [0.2.0] - 2026-09-12
 
