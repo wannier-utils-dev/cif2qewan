@@ -1,4 +1,4 @@
-"""Tests for the Wannier90 renderer (DEVELOPMENT_PLAN.md Step 5).
+"""Tests for the Wannier90 renderer.
 
 The rendered ``.win`` for the Fe_nonmag and Fe_so examples must match the
 reference files byte for byte.

@@ -1,4 +1,4 @@
-"""Tests for MCIF magnetism (DEVELOPMENT_PLAN.md Step 9).
+"""Tests for MCIF magnetism.
 
 Covers the moment-aware pymatgen reader, the tolerance-based site
 classification, the collinear / noncollinear decision, the QE

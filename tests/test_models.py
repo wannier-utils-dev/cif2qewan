@@ -1,4 +1,4 @@
-"""Unit tests for the typed internal models (DEVELOPMENT_PLAN.md Step 2).
+"""Unit tests for the typed internal models.
 
 The models carry units and validation only; nothing here runs the input
 generator or touches the file system.

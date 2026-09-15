@@ -4,8 +4,18 @@ This module holds the scientific policy of cif2qewan: which pseudopotential
 and cutoffs to use, how many bands and Wannier functions, which k meshes,
 and how the ``--so`` / ``--mag`` options and the magnetic moments of the
 structure translate into QE settings. The numbers reproduce the 0.2.x
-generator; the conventions are listed in CLAUDE.md under "Architecture
-notes" and must not change silently.
+generator and must not change silently; changing any of them changes the
+results of published workflows:
+
+- SCF mesh: cif2cell's mesh, or ``round(|b_i| / scf_k_resolution)`` (at
+  least 1) for the pymatgen reader; NSCF mesh: each dimension clamped to
+  ``[4, 8]``.
+- ``nbnd``: ``nexclude + 3 * num_wann`` (nscf), ``nexclude + int(1.5 *
+  num_wann)`` (check_wannier and bands), doubled for spinors.
+- ``conv_thr``: ``1.0d-8`` (scf), ``1.d-10`` (nscf), ``1.d-8`` (check_wannier,
+  bands); ``ecutwfc`` / ``ecutrho``: maximum over the species from the table.
+- Wannier90: ``num_bands = 3 * num_wann``, ``exclude_bands = 1-nexclude``,
+  ``dis_num_iter = 200``, ``num_iter = 0``, ``dis_froz_max = dis_froz_min = -200``.
 
 Magnetism policy:
 

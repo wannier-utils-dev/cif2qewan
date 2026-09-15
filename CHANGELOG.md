@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.3.0rc1] - 2026-09-13
 
-Release candidate of the 0.3.0 rewrite (DEVELOPMENT_PLAN.md). The command
+Release candidate of the 0.3.0 rewrite. The command
 line and the numbers in the generated inputs are compatible with 0.2.0;
 the Python API is new.
 
@@ -45,8 +45,7 @@ the Python API is new.
 
 ### Changed
 - The `cif2qewan` command is now implemented by `cif2qewan.cli` on top of
-  the reader / workflow builder / renderer modules (DEVELOPMENT_PLAN.md
-  Step 7). The command name and the `--so` / `--mag` options are unchanged.
+  the reader / workflow builder / renderer modules. The command name and the `--so` / `--mag` options are unchanged.
 - Generated inputs: scf.in writes `K_POINTS {automatic}` (0.2.x copied
   `K_POINTS automatic` from cif2cell); pwscf.win lists the keywords in a
   fixed layout (`num_wann = ...` with a single space, `spinors` right after
@@ -62,7 +61,7 @@ the Python API is new.
   cif2cell are reported as `cif2qewan: error: ...` with exit status 1
   instead of a traceback.
 
-- Error handling (DEVELOPMENT_PLAN.md Step 8): `band_comp` and
+- Error handling: `band_comp` and
   `wannier_conv` report missing or unreadable files as `<prog>: error: ...`
   with exit status 1 instead of a traceback; the Wannier90 Hamiltonian
   reader raises `DataFileError` instead of printing and continuing with
@@ -72,7 +71,7 @@ the Python API is new.
   as a warning (0.2.x printed it). Nothing in the package calls `os.system`
   any more.
 
-- Magnetic structures from MagCIF files (DEVELOPMENT_PLAN.md Step 9), with
+- Magnetic structures from MagCIF files, with
   `--reader pymatgen`: site moments are kept as Cartesian vectors, sites of
   one element are split into species by moment within a tolerance (`Mn1`,
   `Mn2`, ...; never by exact floating-point equality), the order is
@@ -104,16 +103,15 @@ the Python API is new.
 - Reference examples `examples/PSLibrary/Fe_nonmag` (no options) and
   `examples/PSLibrary/Fe_so` (`--so` only), generated from the same Fe CIF as
   `examples/PSLibrary/Fe`.
-- Characterization tests for the 0.2.x behaviour (DEVELOPMENT_PLAN.md
-  Step 1): the physical content of the generated inputs (spin settings per
+- Characterization tests for the 0.2.x behaviour: the physical content of the generated inputs (spin settings per
   option, k-mesh relations, cell and atoms shared by QE and Wannier90, band
   and Wannier-function counts) and the CLI exit status for invalid inputs.
-- Typed internal models (DEVELOPMENT_PLAN.md Step 2): `cif2qewan.structure.model` (`NormalizedStructure`, `AtomicSite`,
+- Typed internal models: `cif2qewan.structure.model` (`NormalizedStructure`, `AtomicSite`,
   Cartesian `MagneticMoment` in Bohr magneton), `cif2qewan.qe.model`
   (namelists, cards and `PwInput`), `cif2qewan.wannier90.model`
   (`Wannier90Input`), `cif2qewan.workflow.model` (`CalculationPlan`) and
   the exception hierarchy in `cif2qewan.exceptions`.
-- Structure readers (DEVELOPMENT_PLAN.md Step 3):
+- Structure readers:
   `cif2qewan.structure.readers` with the `StructureReader` protocol, a
   `PymatgenReader` for CIF/MCIF and the other pymatgen formats, and a
   `Cif2cellReader` that runs cif2cell with `subprocess` in a fresh temporary
@@ -121,15 +119,15 @@ the Python API is new.
   `ExternalCommandError` on failure. `cif2qewan.structure.compare` checks
   two structures for physical equivalence (same lattice, same sites up to
   lattice translations, same magnetic moments) within tolerances.
-- QE renderer (DEVELOPMENT_PLAN.md Step 4):
+- QE renderer:
   `cif2qewan.qe.writer` turns `PwInput` and `NamelistInput` models into
   text with the 0.2.x formatting. It always writes the `K_POINTS` option in
   braces (`K_POINTS {automatic}`); 0.2.x copied `K_POINTS automatic` from
   cif2cell for scf.in. Both spellings are accepted by pw.x.
-- Wannier90 renderer (DEVELOPMENT_PLAN.md Step 5): `cif2qewan.wannier90.writer.render_win` turns a `Wannier90Input`
+- Wannier90 renderer: `cif2qewan.wannier90.writer.render_win` turns a `Wannier90Input`
   into `.win` text with the 0.2.x numeric formats and a fixed layout
   (counts, `spinors`, pass-through parameters, then the blocks).
-- Workflow layer (DEVELOPMENT_PLAN.md Step 6):
+- Workflow layer:
   `cif2qewan.config.Config` (TOML + `--so`/`--mag`),
   `cif2qewan.qe.pseudopotential.PseudopotentialTable` (the CSV tables, read
   with the standard library), `cif2qewan.qe.kpoints` (SCF mesh from the

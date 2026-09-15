@@ -2,7 +2,7 @@
 
 The model mirrors the structure of a ``pw.x`` input: Fortran namelists
 followed by cards. It stores typed values only; turning them into text is
-the job of the writer (DEVELOPMENT_PLAN.md Step 4), and choosing the
+the job of the writer (:mod:`cif2qewan.qe.writer`), and choosing the
 physical parameters is the job of the workflow builder (Step 6).
 """
 

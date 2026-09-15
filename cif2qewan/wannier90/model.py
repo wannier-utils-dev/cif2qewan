@@ -1,7 +1,7 @@
 """Typed model of a Wannier90 ``.win`` input.
 
 The model holds the cell, atoms, k mesh, projections and pass-through
-parameters; the writer (DEVELOPMENT_PLAN.md Step 5) renders it. The number
+parameters; :mod:`cif2qewan.wannier90.writer` renders it. The number
 of Wannier functions implied by the projections is checked against
 ``num_wann`` when every projection site can be resolved to atoms.
 """

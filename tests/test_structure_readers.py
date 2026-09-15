@@ -1,9 +1,9 @@
-"""Tests for the structure readers (DEVELOPMENT_PLAN.md Step 3).
+"""Tests for the structure readers.
 
 The cif2cell adapter is exercised with a fake ``cif2cell`` script, so that
-neither cif2cell nor a network connection is needed. The completion
-criterion of Step 3 is ``test_both_readers_agree_on_fe``: the pymatgen
-reader and the cif2cell output describe the same crystal within tolerance.
+neither cif2cell nor a network connection is needed.
+``test_both_readers_agree_on_fe`` checks that the pymatgen reader and the
+cif2cell output describe the same crystal within tolerance.
 """
 
 import os

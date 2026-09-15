@@ -1,4 +1,4 @@
-"""Tests for the QE renderer (DEVELOPMENT_PLAN.md Step 4).
+"""Tests for the QE renderer.
 
 The models below are written by hand from the values in
 ``examples/PSLibrary/Fe_nonmag``; the rendered text must match the reference

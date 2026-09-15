@@ -1,6 +1,6 @@
 """Code-independent description of a crystal structure.
 
-Units and conventions (DEVELOPMENT_PLAN.md, section 5.1):
+Units and conventions:
 
 - lattice vectors in angstrom, one vector per row;
 - atomic positions as fractional coordinates of the lattice vectors;

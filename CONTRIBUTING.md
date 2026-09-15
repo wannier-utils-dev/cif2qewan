@@ -205,6 +205,31 @@ isort cif2qewan/
 flake8 cif2qewan/
 ```
 
+### Design Rules
+
+The package is a pipeline `reader -> workflow builder -> renderers -> output`
+(`cif2qewan/cli.py` wires it together). Keep the responsibilities apart:
+
+- **Readers** (`cif2qewan/structure/readers/`) return a `NormalizedStructure`
+  (lattice in angstrom, fractional coordinates, Cartesian moments in Bohr
+  magneton). They never write Quantum ESPRESSO files, change the working
+  directory or leave files next to the input. External programs run through
+  `subprocess` with an argument list in a temporary directory, and a failure
+  raises `ExternalCommandError`; old output files are never reused implicitly.
+- **Scientific policy** (cutoffs, band and Wannier-function counts, k meshes,
+  spin settings) lives in `cif2qewan/workflow/builder.py` only. The numerical
+  conventions are listed in its module docstring; changing one changes
+  published results, so call it out explicitly in the PR and regenerate the
+  reference examples deliberately.
+- **Renderers** (`cif2qewan/qe/writer.py`, `cif2qewan/wannier90/writer.py`)
+  turn typed models into text. They choose no physical parameter and write
+  no file; preformatted literals travel as `RawValue`.
+- **Output** happens only in `cif2qewan/workflow/output.py`.
+- QE-specific notions such as `ibrav` stay in the QE layer, not in the
+  structure model. Errors raised on purpose derive from `Cif2qewanError`.
+- Compare structures by physical equivalence (`cif2qewan/structure/compare.py`),
+  never by exact floating-point equality of coordinates or moments.
+
 ### Documentation Standards
 
 - **Docstrings**: All functions and classes must have docstrings

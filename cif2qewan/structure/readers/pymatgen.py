@@ -28,11 +28,9 @@ class PymatgenReader:
 
     Notes
     -----
-    A ``magmom`` site property is kept as a Cartesian moment in Bohr
-    magneton, taken from pymatgen's global frame. Reading of MagCIF files
-    and the classification of magnetic sites are the subject of
-    DEVELOPMENT_PLAN.md Step 9; until then the moments are passed through
-    as pymatgen provides them.
+    A ``magmom`` site property (MagCIF) is kept as a Cartesian moment in
+    Bohr magneton, taken from pymatgen's global frame. The classification
+    of magnetic sites happens later, in :mod:`cif2qewan.structure.magnetism`.
     """
 
     def __init__(self, primitive: bool = True, symprec: float = 1.0e-3) -> None:

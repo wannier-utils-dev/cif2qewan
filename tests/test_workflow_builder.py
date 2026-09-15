@@ -1,7 +1,6 @@
-"""Tests for the workflow layer (DEVELOPMENT_PLAN.md Step 6).
+"""Tests for the workflow layer.
 
-``test_plan_reproduces_the_example`` is the completion criterion: from the
-cif2cell output and the TOML of every reference example, the new
+``test_plan_reproduces_the_example`` checks that, from the cif2cell output and the TOML of every reference example, the new
 implementation alone produces all nine input files, byte for byte.
 """
 

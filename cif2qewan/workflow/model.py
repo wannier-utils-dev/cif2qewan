@@ -23,7 +23,7 @@ RenderableInput = Union[PwInput, NamelistInput, Wannier90Input]
 class CalculationPlan:
     """Everything needed to run the QE + Wannier90 workflow for one structure.
 
-    The plan is produced by the workflow builder (DEVELOPMENT_PLAN.md Step 6)
+    The plan is produced by :mod:`cif2qewan.workflow.builder`
     and consumed by the writers; it does not touch the file system itself.
     ``files()`` gives the intended job layout.
     """
