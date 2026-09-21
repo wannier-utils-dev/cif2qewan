@@ -241,19 +241,19 @@ The package is a pipeline `reader -> workflow builder -> renderers -> output`
 
 ```python
 def calculate_energy(
-    k_point: np.ndarray, 
+    k_point: np.ndarray,
     hamiltonian: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculate band energies at a given k-point.
-    
+
     Parameters
     ----------
     k_point : np.ndarray
         K-point coordinates (shape: [3]).
     hamiltonian : np.ndarray
         Hamiltonian matrix (shape: [n_bands, n_bands]).
-        
+
     Returns
     -------
     tuple[np.ndarray, np.ndarray]
@@ -274,8 +274,8 @@ pytest
 # Run with coverage
 pytest --cov=cif2qewan --cov-report=html
 
-# Run specific test file
-pytest tests/test_cif2qewan.py
+# Run a specific test file
+pytest tests/test_workflow_builder.py
 
 # Run with verbose output
 pytest -v
@@ -309,85 +309,6 @@ pseudopotential directory; the reference examples under `examples/` are
 regenerated through the CLI with `--cif2cell-output` (see `tests/conftest.py`).
 Any change to a generated file makes `tests/test_examples.py` fail; if the
 change is intended, regenerate the examples and describe the diff in the PR.
-
-## Documentation Standards
-
-- **Docstrings**: All functions and classes must have docstrings
-- **Comments**: Complex code should be commented
-- **README**: Keep README.md updated
-- **Type hints**: Use type hints for better documentation
-
-### Example Code Style
-
-```python
-def calculate_energy(
-    k_point: np.ndarray, 
-    hamiltonian: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Calculate band energies at a given k-point.
-    
-    Parameters
-    ----------
-    k_point : np.ndarray
-        K-point coordinates (shape: [3]).
-    hamiltonian : np.ndarray
-        Hamiltonian matrix (shape: [n_bands, n_bands]).
-        
-    Returns
-    -------
-    tuple[np.ndarray, np.ndarray]
-        Eigenvalues and eigenvectors.
-    """
-    eigenvalues, eigenvectors = np.linalg.eigh(hamiltonian)
-    return eigenvalues, eigenvectors
-```
-
-## Testing
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=cif2qewan --cov-report=html
-
-# Run specific test file
-pytest tests/test_cif2qewan.py
-
-# Run with verbose output
-pytest -v
-```
-
-### Writing Tests
-
-- **Test coverage**: Aim for >80% coverage
-- **Test naming**: Use descriptive test names
-- **Test organization**: Group related tests in classes
-- **Fixtures**: Use pytest fixtures for common setup
-
-### Example Test
-
-```python
-import pytest
-import numpy as np
-from cif2qewan.cif2qewan import qe_wannier_in
-
-class TestQEWannierIn:
-    """Test cases for QEWannierIn class."""
-    
-    def test_initialization(self):
-        """Test class initialization."""
-        # Test initialization
-        pass
-    
-    def test_band_calculation(self):
-        """Test band structure calculation."""
-        # Test band calculation
-        pass
-```
 
 ## Documentation
 

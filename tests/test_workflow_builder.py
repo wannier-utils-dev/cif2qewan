@@ -12,7 +12,12 @@ import numpy as np
 import pytest
 
 from cif2qewan.config import Config
-from cif2qewan.exceptions import ConfigError, InputModelError, PseudopotentialError
+from cif2qewan.exceptions import (
+    ConfigError,
+    InputModelError,
+    PseudopotentialError,
+    StructureError,
+)
 from cif2qewan.qe import kpoints
 from cif2qewan.qe.model import KPathPoint, KPointsAutomatic, KPointsPath, RawValue
 from cif2qewan.qe.pseudopotential import PseudopotentialEntry, PseudopotentialTable
@@ -342,6 +347,15 @@ def test_hints_must_match_the_structure():
     assert plan.scf.system.entries["A"] == RawValue(f"{1.0:10.5f}")
     assert plan.scf.kpoints == KPointsAutomatic((3, 3, 3))
     assert plan.wannier90.mp_grid == (4, 4, 4)  # clamped nscf mesh
+
+
+def test_builder_rejects_partial_occupancy():
+    partial = NormalizedStructure(
+        np.eye(3) * 4.0,
+        (AtomicSite("Na", (0, 0, 0), occupancy=0.5),),
+    )
+    with pytest.raises(StructureError, match="partial occupancy"):
+        build_plan(partial, example_config(EXAMPLE_CASES[1]))
 
 
 def test_two_species_use_the_table_order_and_sum_the_counts():

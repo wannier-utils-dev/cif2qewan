@@ -57,6 +57,8 @@ def test_parse_rejects_unusable_output():
     text = (FE / "cif_scf.in").read_text()
     with pytest.raises(StructureError, match="ibrav"):
         parse_cif2cell_output(text.replace("ibrav = 0", "ibrav = 3"))
+    with pytest.raises(StructureError, match="cannot parse cif2cell output"):
+        parse_cif2cell_output(text.replace("ibrav = 0", "ibrav = invalid"))
     with pytest.raises(StructureError, match="ATOMIC_SPECIES"):
         parse_cif2cell_output(
             text.replace("Fe   0.000000000000000", "Co   0.000000000000000")
@@ -247,9 +249,8 @@ def test_pymatgen_conversion_keeps_magmom_and_rejects_mixed_sites():
         PymatgenReader.from_pymatgen(mixed)
 
     partial = Structure(Lattice.cubic(4.0), [{"Na": 0.5}], [[0, 0, 0]])
-    assert PymatgenReader.from_pymatgen(partial).sites[0].occupancy == pytest.approx(
-        0.5
-    )
+    with pytest.raises(StructureError, match="partial occupancy"):
+        PymatgenReader.from_pymatgen(partial)
 
 
 # --------------------------------------------------------------------------

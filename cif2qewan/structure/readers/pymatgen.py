@@ -115,7 +115,7 @@ class PymatgenReader:
 
 
 def _single_species(site):
-    """(element, occupancy) of a site occupied by one species."""
+    """(element, occupancy) of a fully occupied site with one species."""
     species = list(site.species.items())
     if len(species) != 1:
         raise StructureError(
@@ -123,10 +123,16 @@ def _single_species(site):
             f"({site.species_string}); mixed occupancy is not supported"
         )
     specie, occupancy = species[0]
+    occupancy = float(occupancy)
+    if abs(occupancy - 1.0) > 1.0e-8:
+        raise StructureError(
+            f"site at {tuple(site.frac_coords)} has occupancy {occupancy}; "
+            "partial occupancy is not supported"
+        )
     symbol = (
         getattr(specie, "symbol", None) or getattr(specie, "element", specie).symbol
     )
-    return str(symbol), float(occupancy)
+    return str(symbol), occupancy
 
 
 def _magnetic_moment(value) -> Optional[MagneticMoment]:

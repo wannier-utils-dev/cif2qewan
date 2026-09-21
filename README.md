@@ -156,6 +156,9 @@ existing `cif_scf.in` is not picked up automatically; pass it with
 `--cif2cell-output` if you want to reuse it. Errors are reported as
 `cif2qewan: error: ...` with exit status 1.
 
+The `pymatgen` reader accepts only fully occupied sites; mixed or partial
+occupancies are rejected because the generated QE inputs cannot represent them.
+
 ### Magnetic structures (MagCIF)
 
 With `--reader pymatgen` a MagCIF (`.mcif`) file is read including the site

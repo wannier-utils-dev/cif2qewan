@@ -53,6 +53,22 @@ def test_band_comp_reports_missing_files(tmp_path):
     assert "Traceback" not in result.stderr
 
 
+def test_band_comp_reports_missing_scf_after_reading_band_files(tmp_path):
+    work = tmp_path / "wannier"
+    work.mkdir()
+    band = tmp_path / "band"
+    band.mkdir()
+    data = "0.0 1.0\n1.0 2.0\n"
+    (work / "pwscf_band.dat").write_text(data)
+    (band / "bands.out.gnu").write_text(data)
+
+    result = run_module("cif2qewan.band_comp", ["-o", str(tmp_path)], work)
+    assert result.returncode == 1
+    assert result.stderr.startswith("band_comp: error:")
+    assert "scf.out" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def test_wannier_conv_reports_missing_files(tmp_path):
     result = run_module(
         "cif2qewan.wannier_conv",

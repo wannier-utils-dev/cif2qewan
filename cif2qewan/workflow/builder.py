@@ -42,7 +42,7 @@ from typing import Dict, Mapping, Optional, Tuple
 import numpy as np
 
 from cif2qewan.config import Config
-from cif2qewan.exceptions import InputModelError
+from cif2qewan.exceptions import InputModelError, StructureError
 from cif2qewan.qe.kpoints import (
     Mesh,
     atomic_mass,
@@ -295,6 +295,16 @@ class WorkflowBuilder:
     ) -> CalculationPlan:
         hints = hints or StructureHints()
         config = self.config
+
+        partial = next(
+            (site for site in structure.sites if abs(site.occupancy - 1.0) > 1.0e-8),
+            None,
+        )
+        if partial is not None:
+            raise StructureError(
+                f"site {partial.label!r} at {partial.frac_coords} has occupancy "
+                f"{partial.occupancy}; partial occupancy is not supported"
+            )
 
         order = magnetic_order(structure)
         if order != NONMAGNETIC:

@@ -127,7 +127,7 @@ class Hamiltonian:
             for i, m, n in itertools.product(
                 range(self.nrpts), range(self.num_wann), range(self.num_wann)
             ):
-                (irx, iry, irz, _, _, tr, ti) = fp.readline().split()
+                irx, iry, irz, _, _, tr, ti = fp.readline().split()
 
                 # Store lattice vectors (only once per R point)
                 if m == 0 and n == 0:
@@ -148,7 +148,9 @@ class Hamiltonian:
             fp.close()
 
         except (OSError, ValueError, IndexError) as e:
-            raise DataFileError(f"cannot read the Wannier90 Hamiltonian {file_hr}: {e}") from e
+            raise DataFileError(
+                f"cannot read the Wannier90 Hamiltonian {file_hr}: {e}"
+            ) from e
 
     def diagonalize(self, k: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -187,7 +189,7 @@ class Hamiltonian:
         ham = np.dot(self.ham_r, factor)
 
         # Diagonalize to get eigenvalues and eigenvectors
-        (e, v) = np.linalg.eigh(ham)
+        e, v = np.linalg.eigh(ham)
 
         return (e, v)
 
@@ -382,7 +384,7 @@ Examples:
 
         for i in range(nscf_data.nk):
             # Get Wannier90 energies at this k-point
-            (ek, _) = h.diagonalize(nscf_data.kp_cryst[i])
+            ek, _ = h.diagonalize(nscf_data.kp_cryst[i])
 
             # Determine energy range for comparison
             nek_low = np.sum(ek - nscf_data.ef < emin)
@@ -414,14 +416,14 @@ Examples:
             fp.write(f"# energy window [{emin:>5.2f}:{emax:>5.2f}]\n")
 
             if nek > 0:
-                avg_diff = np.sqrt(delta_sum/nek)
+                avg_diff = np.sqrt(delta_sum / nek)
                 fp.write(f"average diff = {avg_diff:>15.8f}\n")
             else:
                 fp.write("average diff = NaN\n")
 
             max_diff = np.sqrt(delta_max)
             fp.write(f"max diff     = {max_diff:>15.8f}\n")
-    
+
         print(f"Convergence results written to: {output_file}")
         if nek > 0:
             print(f"Average difference: {np.sqrt(delta_sum/nek):.6f} eV")
@@ -433,6 +435,7 @@ Examples:
         print(f"wannier_conv: error: {exc}", file=sys.stderr)
         return 1
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

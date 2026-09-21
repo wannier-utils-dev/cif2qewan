@@ -74,6 +74,16 @@ def _card(lines: Sequence[str], name: str) -> Tuple[str, list]:
 
 def parse_cif2cell_output(text: str) -> Cif2cellOutput:
     """Parse the ``pw.x`` input written by ``cif2cell -p pwscf``."""
+    try:
+        return _parse_cif2cell_output(text)
+    except StructureError:
+        raise
+    except (IndexError, OverflowError, TypeError, ValueError) as exc:
+        raise StructureError(f"cannot parse cif2cell output: {exc}") from exc
+
+
+def _parse_cif2cell_output(text: str) -> Cif2cellOutput:
+    """Implementation of :func:`parse_cif2cell_output` with typed errors."""
     lines = text.splitlines()
 
     def namelist_value(key: str) -> Optional[str]:
