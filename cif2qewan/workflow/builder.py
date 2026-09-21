@@ -419,6 +419,12 @@ class WorkflowBuilder:
             kpoints=path,
         )
 
+        wannier90_parameters = dict(WANNIER90_PARAMETERS)
+        # wannier_plot reads UNK files written by pw2wannier90.x.  Keeping it
+        # enabled while write_unk is false makes Wannier90 abort after the
+        # Hamiltonian and band files have otherwise been generated.
+        wannier90_parameters["wannier_plot"] = config.write_unk
+
         wannier90 = Wannier90Input(
             num_wann=counts.num_wann_total,
             num_bands=counts.num_bands,
@@ -436,7 +442,7 @@ class WorkflowBuilder:
             spinors=counts.spinor,
             exclude_bands=(1, counts.nexclude_total) if counts.nexclude > 0 else None,
             kpoint_path=win_kpoint_path(path),
-            parameters=dict(WANNIER90_PARAMETERS),
+            parameters=wannier90_parameters,
         )
 
         return CalculationPlan(
@@ -591,7 +597,7 @@ class WorkflowBuilder:
             )
         entries["write_mmn"] = True
         entries["write_amn"] = True
-        entries["write_unk"] = RawValue(str(options["write_unk"]))
+        entries["write_unk"] = self.config.write_unk
         return NamelistInput((Namelist("inputpp", entries),))
 
     def _projwfc_input(self) -> NamelistInput:

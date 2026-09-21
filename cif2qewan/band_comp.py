@@ -227,7 +227,7 @@ def plot_band_comparison(output_dir: str) -> None:
     scfout = "scf.out"  # QE SCF output file
     wannier_band = "pwscf_band.dat"  # Wannier90 band data
     wannier_band_gnu = "pwscf_band.gnu"  # Wannier90 gnuplot file
-    pwscf_band = "../band/bands.out.gnu"  # QE band structure data
+    pwscf_band = "band/bands.out.gnu"  # QE band structure data
 
     # Load band structure data from both sources
     x, y = get_band_data(wannier_band)  # Wannier90 data

@@ -76,6 +76,8 @@ def test_config_errors(tmp_path):
         Config.from_dict({**base, "degauss": 0.0, "pw2wan": {"write_unk": ".true."}})
     with pytest.raises(ConfigError, match="invalid configuration value"):
         Config.from_dict({**base, "degauss": "abc", "pw2wan": {"write_unk": ".true."}})
+    with pytest.raises(ConfigError, match="pw2wan.write_unk"):
+        Config.from_dict({**base, "pw2wan": {"write_unk": "sometimes"}})
     bad = tmp_path / "bad.toml"
     bad.write_text("this = [is not toml\n")
     with pytest.raises(ConfigError, match="cannot read"):
@@ -337,6 +339,31 @@ def test_cutoff_warning_and_missing_projection(tmp_path):
     text = render_namelist_input(builder._pw2wan_input())
     assert " wannier_plot_supercell = 3\n" in text
     assert " write_unk = .false.\n" in text
+
+
+@pytest.mark.parametrize(
+    ("write_unk", "enabled"),
+    [(".true.", True), (".false.", False), (True, True), (False, False)],
+)
+def test_wannier_plot_requires_unk_files(write_unk, enabled):
+    config = Config.from_dict(
+        {
+            "cif2cell_path": "c",
+            "pseudo_dir": "/pp",
+            "pp_list_path": str(PSL),
+            "scf_k_resolution": 0.15,
+            "degauss": 0.01,
+            "pw2wan": {"write_unk": write_unk},
+        }
+    )
+    plan = build_plan(fe_structure(), config)
+
+    assert config.write_unk is enabled
+    assert plan.wannier90.parameters["wannier_plot"] is enabled
+    assert (
+        f" write_unk = {'.true.' if enabled else '.false.'}\n"
+        in render_namelist_input(plan.pw2wan)
+    )
 
 
 def test_hints_must_match_the_structure():

@@ -114,6 +114,9 @@ The `cif2qewan.toml` file contains all necessary configuration parameters:
 | `degauss` | Gaussian smearing (Ry) | 0.01 |
 | `pw2wan.write_unk` | Write UNK files for Wannier90 | ".true." |
 
+When `pw2wan.write_unk` is false, the generated `pwscf.win` also sets
+`wannier_plot = .false.` because Wannier-function plots require the UNK files.
+
 ### Pseudopotential List Format
 
 Create a CSV file with the following columns:

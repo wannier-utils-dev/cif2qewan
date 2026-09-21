@@ -31,7 +31,8 @@ class Config:
         Smearing width in Ry.
     pw2wan : dict
         Options copied into ``pw2wan.in``: ``write_unk`` (required) and
-        optionally ``wannier_plot_supercell``.
+        optionally ``wannier_plot_supercell``. ``write_unk`` accepts a TOML
+        boolean or the legacy ``.true.`` / ``.false.`` strings.
     so, mag : bool
         The ``--so`` and ``--mag`` command-line options.
     """
@@ -57,6 +58,27 @@ class Config:
             raise ConfigError(f"degauss must be positive, got {self.degauss}")
         if "write_unk" not in self.pw2wan:
             raise ConfigError("the [pw2wan] table needs write_unk")
+        # Keep accepting the Fortran-style strings used by the legacy TOML
+        # files, but reject values that would produce an invalid QE namelist.
+        self._logical_option(self.pw2wan["write_unk"], "pw2wan.write_unk")
+
+    @staticmethod
+    def _logical_option(value: Any, name: str) -> bool:
+        if isinstance(value, bool):
+            return value
+        normalized = str(value).strip().lower()
+        if normalized in {".true.", "true"}:
+            return True
+        if normalized in {".false.", "false"}:
+            return False
+        raise ConfigError(
+            f"{name} must be a boolean or .true./.false., got {value!r}"
+        )
+
+    @property
+    def write_unk(self) -> bool:
+        """Whether ``pw2wannier90.x`` writes the UNK files needed for WF plots."""
+        return self._logical_option(self.pw2wan["write_unk"], "pw2wan.write_unk")
 
     @property
     def spinor(self) -> bool:
