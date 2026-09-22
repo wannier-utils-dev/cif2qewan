@@ -42,6 +42,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The default structure reader runs cif2cell; `pip install '.[cif2cell]'`
+# installs it into the same environment. `--reader pymatgen` needs none.
+cif2cell = [
+    "cif2cell>=2.0",
+]
 test = [
     "pytest>=6.0",
 ]

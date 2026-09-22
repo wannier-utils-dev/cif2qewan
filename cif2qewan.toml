@@ -1,29 +1,30 @@
-# CIF to Quantum ESPRESSO Wannier90 Configuration File
-# This file contains all the necessary configuration parameters for
-# generating Quantum ESPRESSO and Wannier90 input files from CIF structures.
+# cif2qewan configuration file
+#
+# Only pseudo_dir, scf_k_resolution, degauss and [pw2wan] are required; the
+# other keys have defaults that work with an installed cif2qewan.
 
-# Path to the cif2cell executable
-# cif2cell is used to convert CIF files to Quantum ESPRESSO input format
-cif2cell_path = "path/to/cif2cell_path"
-
-# Directory containing pseudopotential files
-# This should point to your Quantum ESPRESSO pseudopotential directory
+# Directory containing the pseudopotential files (written into the QE inputs)
 pseudo_dir = "/path/to/pseudo_dir"
 
-# Path to the pseudopotential list CSV file
-# This file contains information about available pseudopotentials
-pp_list_path = "/path/to/pp_list"
+# Pseudopotential / Wannier projection table (CSV).
+# Default: the PSLibrary table "pp_psl_rrkj.csv" installed with cif2qewan.
+# A bare file name selects a bundled table: "pp_psl_rrkj.csv" (PSLibrary),
+# "nc-sr-05_pbe_standard_upf.csv" or "nc-sr-05_pbe_stringent_upf.csv"
+# (PseudoDojo). Anything with a directory part is used as a path.
+# pp_list_path = "nc-sr-05_pbe_standard_upf.csv"
 
-# K-point resolution for SCF calculations (in 1/Å)
-# Smaller values give denser k-point meshes
+# The cif2cell executable used by the default structure reader.
+# Default: "cif2cell" on PATH, which is where `pip install cif2cell` puts it.
+# Not needed with `--reader pymatgen`.
+# cif2cell_path = "/path/to/cif2cell"
+
+# K-point resolution for the SCF mesh (in 1/Å); smaller values give denser meshes
 scf_k_resolution = 0.15
 
-# Gaussian smearing parameter (in Ry)
-# Used for metallic systems to improve convergence
+# Gaussian smearing (in Ry)
 degauss = 0.01
 
-# pw2wannier90 interface configuration
+# pw2wannier90 options
 [pw2wan]
-# Whether to write UNK files for Wannier90
-# Set to ".true." to enable, ".false." to disable
+# Write the UNK files needed to plot Wannier functions (true / false)
 write_unk = ".true."

@@ -4,12 +4,18 @@ Columns: ``atom, pp_file_name, nexclude, orbitals, ecutwfc, ecutrho``. An
 empty ``pp_file_name`` marks an element without a supported
 pseudopotential; empty ``nexclude``/``ecutwfc``/``ecutrho`` count as 0 and
 an empty ``orbitals`` as no projection.
+
+The tables shipped with the package (``pp_psl_rrkj.csv`` for PSLibrary,
+``nc-sr-05_pbe_standard_upf.csv`` and ``nc-sr-05_pbe_stringent_upf.csv`` for
+PseudoDojo) are found by :func:`resolve_table_path` from their bare file
+name, so that an installed cif2qewan works without a path to the table.
 """
 
 from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
 
@@ -19,6 +25,31 @@ PathLike = Union[str, Path]
 
 #: Wannier functions per projection letter in the ``orbitals`` column.
 ORBITAL_SIZES = {"s": 1, "p": 3, "d": 5, "f": 7}
+
+#: The table used when the configuration gives no ``pp_list_path``.
+DEFAULT_TABLE = "pp_psl_rrkj.csv"
+
+
+def bundled_tables() -> Tuple[str, ...]:
+    """File names of the CSV tables installed with the package, sorted."""
+    package = resources.files("cif2qewan")
+    return tuple(
+        sorted(entry.name for entry in package.iterdir() if entry.name.endswith(".csv"))
+    )
+
+
+def resolve_table_path(value: PathLike = DEFAULT_TABLE) -> Path:
+    """The file behind a ``pp_list_path`` value.
+
+    A bare file name of a bundled table (``"pp_psl_rrkj.csv"``, no directory
+    part) means the copy installed with the package; anything else is used
+    as a path as given, so ``./pp_psl_rrkj.csv`` is a file in the current
+    directory.
+    """
+    path = Path(value)
+    if path.name == str(value) and path.name in bundled_tables():
+        return Path(str(resources.files("cif2qewan").joinpath(path.name)))
+    return path
 
 
 @dataclass(frozen=True)

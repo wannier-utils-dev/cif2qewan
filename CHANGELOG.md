@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- `pp_list_path` and `cif2cell_path` in `cif2qewan.toml` are optional. The
+  default table is the bundled PSLibrary table `pp_psl_rrkj.csv`; the bare
+  file name of a bundled table (`nc-sr-05_pbe_standard_upf.csv`,
+  `nc-sr-05_pbe_stringent_upf.csv`) selects the installed copy, so an
+  installed cif2qewan needs no path to the tables. `cif2cell_path` defaults
+  to `cif2cell` on PATH. Existing TOML files with absolute paths keep working.
+- cif2cell is optional: `pip install '.[cif2cell]'` installs it from PyPI,
+  and a missing cif2cell is reported with the installation hint and the
+  `--reader pymatgen` alternative.
+- `CONTRIBUTING.md` is replaced by a short Contributing section in the README.
+
 ## [0.3.0rc1] - 2026-09-13
 
 Release candidate of the 0.3.0 rewrite. The command

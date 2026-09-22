@@ -34,29 +34,30 @@ A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 inp
 ### Prerequisites
 
 - Python 3.9 or higher
-- Quantum ESPRESSO (QE)
-- Wannier90
-- cif2cell
-- Required Python packages (see below)
+- Quantum ESPRESSO (QE) and Wannier90 to run the generated inputs
+- cif2cell (optional): the default structure reader runs it;
+  `--reader pymatgen` reads the CIF without it
 
 ### Software Dependencies
 
 1. **Quantum ESPRESSO**: [Download and install QE](https://www.quantum-espresso.org/)
 2. **Wannier90**: [Download and install Wannier90](https://github.com/wannier-developers/wannier90)
-3. **cif2cell**: [Download and install cif2cell](https://sourceforge.net/projects/cif2cell/)
+3. **cif2cell** (optional): `pip install cif2cell`, or see
+   [cif2cell](https://sourceforge.net/projects/cif2cell/)
 
 ### Installation
 
 ```bash
 git clone https://github.com/wannier-utils-dev/cif2qewan.git
 cd cif2qewan
-pip install .
+pip install .              # or: pip install '.[cif2cell]' to install cif2cell too
 ```
 
-This installs the Python dependencies and the `cif2qewan`, `band_comp` and
-`wannier_conv` commands. The pseudopotential tables are installed with the
-package; point `pp_list_path` in `cif2qewan.toml` at the one you want, for
-example `cif2qewan/pp_psl_rrkj.csv` in the clone.
+This installs the Python dependencies, the `cif2qewan`, `band_comp` and
+`wannier_conv` commands, and the pseudopotential tables (`pp_psl_rrkj.csv`
+for PSLibrary, `nc-sr-05_pbe_standard_upf.csv` and
+`nc-sr-05_pbe_stringent_upf.csv` for PseudoDojo). The PSLibrary table is
+used by default; select another one by its file name with `pp_list_path`.
 
 Without installing, the tools can also be run from a clone as
 `python -m cif2qewan.cli`, `python -m cif2qewan.band_comp` and
@@ -67,14 +68,14 @@ Without installing, the tools can also be run from a clone as
 1. **Configure the system** by editing `cif2qewan.toml`:
 
 ```toml
-# Path to cif2cell executable
-cif2cell_path = "/path/to/cif2cell"
-
 # Directory containing pseudopotentials
 pseudo_dir = "/path/to/pseudopotentials"
 
-# Path to pseudopotential list CSV
-pp_list_path = "/path/to/pp_list.csv"
+# Pseudopotential table; default: the bundled PSLibrary table
+# pp_list_path = "nc-sr-05_pbe_standard_upf.csv"
+
+# cif2cell executable; default: "cif2cell" on PATH
+# cif2cell_path = "/path/to/cif2cell"
 
 # K-point resolution for SCF (1/Å)
 scf_k_resolution = 0.15
@@ -107,19 +108,23 @@ The `cif2qewan.toml` file contains all necessary configuration parameters:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `cif2cell_path` | Path to cif2cell executable | Required |
 | `pseudo_dir` | Directory containing pseudopotentials | Required |
-| `pp_list_path` | Path to pseudopotential list CSV | Required |
-| `scf_k_resolution` | K-point resolution for SCF (1/Å) | 0.15 |
-| `degauss` | Gaussian smearing (Ry) | 0.01 |
-| `pw2wan.write_unk` | Write UNK files for Wannier90 | ".true." |
+| `scf_k_resolution` | K-point resolution for SCF (1/Å) | Required (0.15 in the sample) |
+| `degauss` | Gaussian smearing (Ry) | Required (0.01 in the sample) |
+| `pw2wan.write_unk` | Write UNK files for Wannier90 | Required (".true." in the sample) |
+| `pp_list_path` | Pseudopotential table: the file name of a bundled table, or a path | `"pp_psl_rrkj.csv"` |
+| `cif2cell_path` | cif2cell executable (default reader only) | `"cif2cell"` on PATH |
 
 When `pw2wan.write_unk` is false, the generated `pwscf.win` also sets
 `wannier_plot = .false.` because Wannier-function plots require the UNK files.
 
-### Pseudopotential List Format
+### Pseudopotential Tables
 
-Create a CSV file with the following columns:
+Three tables are installed with the package and selected by file name:
+`pp_psl_rrkj.csv` (PSLibrary, the default), `nc-sr-05_pbe_standard_upf.csv`
+and `nc-sr-05_pbe_stringent_upf.csv` (PseudoDojo). A `pp_list_path` with a
+directory part (`./my_table.csv`, `/path/to/table.csv`) is used as a path,
+so you can also write your own table with the following columns:
 
 ```csv
 atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho
@@ -326,9 +331,9 @@ cif2qewan structure.cif cif2qewan.toml --so
 
 ```toml
 # cif2qewan.toml
-cif2cell_path = "/usr/local/bin/cif2cell"
 pseudo_dir = "/home/user/pseudopotentials"
 pp_list_path = "/home/user/pp_list.csv"
+cif2cell_path = "/usr/local/bin/cif2cell"
 scf_k_resolution = 0.20
 degauss = 0.02
 
@@ -342,8 +347,8 @@ write_unk = ".false."
 
 1. **cif2cell not found**
    ```bash
-   # Install cif2cell
-   # Add to PATH or update cif2cell_path in config
+   pip install cif2cell          # puts the cif2cell command on PATH
+   # or set cif2cell_path in cif2qewan.toml, or use --reader pymatgen
    ```
 
 2. **Pseudopotentials not found**
@@ -387,24 +392,26 @@ ls -la band/
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Setup
+Bug reports and pull requests are welcome. Work on a branch off `develop`
+and open the pull request against `develop`; CI runs the tests on Python 3.9
+and 3.12.
 
 ```bash
-# Clone repository
 git clone https://github.com/wannier-utils-dev/cif2qewan.git
 cd cif2qewan
-
-# Install with the test dependencies
 pip install -e '.[test]'
-
-# Run tests
-pytest
-
-# Run linting
-flake8 cif2qewan tests
+pytest                                           # no QE, Wannier90 or cif2cell needed
+flake8 cif2qewan tests --select=E9,F63,F7,F82    # what CI checks
+black cif2qewan tests                            # formatting
 ```
+
+The code follows PEP 8 with Black formatting, NumPy-style docstrings and type
+hints. The package is a pipeline reader -> workflow builder -> renderers ->
+output; the scientific choices (cutoffs, band counts, k meshes, spin
+settings) live in `cif2qewan/workflow/builder.py` only, and changing one
+changes the generated inputs. Such a change must be stated in the pull
+request together with the regenerated reference examples under `examples/`,
+which the tests compare byte for byte.
 
 ### Reporting Issues
 
