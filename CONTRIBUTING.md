@@ -118,7 +118,7 @@ pip install flake8
 - [ ] Tests pass locally
 - [ ] Documentation is updated
 - [ ] Commit messages are clear and descriptive
-- [ ] Branch is up to date with main/develop
+- [ ] Branch is up to date with develop (or master for a hotfix)
 
 ### Pull Request Template
 
@@ -205,6 +205,31 @@ isort cif2qewan/
 flake8 cif2qewan/
 ```
 
+### Design Rules
+
+The package is a pipeline `reader -> workflow builder -> renderers -> output`
+(`cif2qewan/cli.py` wires it together). Keep the responsibilities apart:
+
+- **Readers** (`cif2qewan/structure/readers/`) return a `NormalizedStructure`
+  (lattice in angstrom, fractional coordinates, Cartesian moments in Bohr
+  magneton). They never write Quantum ESPRESSO files, change the working
+  directory or leave files next to the input. External programs run through
+  `subprocess` with an argument list in a temporary directory, and a failure
+  raises `ExternalCommandError`; old output files are never reused implicitly.
+- **Scientific policy** (cutoffs, band and Wannier-function counts, k meshes,
+  spin settings) lives in `cif2qewan/workflow/builder.py` only. The numerical
+  conventions are listed in its module docstring; changing one changes
+  published results, so call it out explicitly in the PR and regenerate the
+  reference examples deliberately.
+- **Renderers** (`cif2qewan/qe/writer.py`, `cif2qewan/wannier90/writer.py`)
+  turn typed models into text. They choose no physical parameter and write
+  no file; preformatted literals travel as `RawValue`.
+- **Output** happens only in `cif2qewan/workflow/output.py`.
+- QE-specific notions such as `ibrav` stay in the QE layer, not in the
+  structure model. Errors raised on purpose derive from `Cif2qewanError`.
+- Compare structures by physical equivalence (`cif2qewan/structure/compare.py`),
+  never by exact floating-point equality of coordinates or moments.
+
 ### Documentation Standards
 
 - **Docstrings**: All functions and classes must have docstrings
@@ -216,19 +241,19 @@ flake8 cif2qewan/
 
 ```python
 def calculate_energy(
-    k_point: np.ndarray, 
+    k_point: np.ndarray,
     hamiltonian: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculate band energies at a given k-point.
-    
+
     Parameters
     ----------
     k_point : np.ndarray
         K-point coordinates (shape: [3]).
     hamiltonian : np.ndarray
         Hamiltonian matrix (shape: [n_bands, n_bands]).
-        
+
     Returns
     -------
     tuple[np.ndarray, np.ndarray]
@@ -249,8 +274,8 @@ pytest
 # Run with coverage
 pytest --cov=cif2qewan --cov-report=html
 
-# Run specific test file
-pytest tests/test_cif2qewan.py
+# Run a specific test file
+pytest tests/test_workflow_builder.py
 
 # Run with verbose output
 pytest -v
@@ -266,23 +291,24 @@ pytest -v
 ### Example Test
 
 ```python
-import pytest
 import numpy as np
-from cif2qewan.cif2qewan import qe_wannier_in
 
-class TestQEWannierIn:
-    """Test cases for QEWannierIn class."""
-    
-    def test_initialization(self):
-        """Test class initialization."""
-        # Test initialization
-        pass
-    
-    def test_band_calculation(self):
-        """Test band structure calculation."""
-        # Test band calculation
-        pass
+from cif2qewan.structure.model import AtomicSite, NormalizedStructure
+from cif2qewan.workflow.builder import build_plan
+
+
+def test_nbnd_follows_the_wannier_count(psl_config):
+    """nscf nbnd = nexclude + 3 * num_wann for a non-magnetic structure."""
+    fe = NormalizedStructure(np.eye(3) * 2.87, (AtomicSite("Fe", (0, 0, 0)),))
+    plan = build_plan(fe, psl_config)
+    assert plan.nscf.system.entries["nbnd"] == 4 + 3 * 9
 ```
+
+Tests must not need Quantum ESPRESSO, Wannier90, cif2cell or a
+pseudopotential directory; the reference examples under `examples/` are
+regenerated through the CLI with `--cif2cell-output` (see `tests/conftest.py`).
+Any change to a generated file makes `tests/test_examples.py` fail; if the
+change is intended, regenerate the examples and describe the diff in the PR.
 
 ## Documentation
 

@@ -32,7 +32,7 @@ TOML_FILE=/path/to/cif2qewan.toml        # Configuration file path
 
 echo "Step 1: Generating input files from CIF..."
 # Use the installed module to avoid relying on script paths
-python -m cif2qewan.cif2qewan *.cif $TOML_FILE
+cif2qewan *.cif $TOML_FILE
 
 # =============================================================================
 # Step 2: Self-Consistent Field (SCF) Calculation

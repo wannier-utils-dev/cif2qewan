@@ -59,7 +59,7 @@ package; point `pp_list_path` in `cif2qewan.toml` at the one you want, for
 example `cif2qewan/pp_psl_rrkj.csv` in the clone.
 
 Without installing, the tools can also be run from a clone as
-`python -m cif2qewan.cif2qewan`, `python -m cif2qewan.band_comp` and
+`python -m cif2qewan.cli`, `python -m cif2qewan.band_comp` and
 `python -m cif2qewan.wannier_conv`.
 
 ## Quick Start
@@ -94,7 +94,7 @@ write_unk = ".true."
 ./submit_all.sh
 
 # Or run step by step
-cif2qewan structure.cif cif2qewan.toml   # or: python -m cif2qewan.cif2qewan structure.cif cif2qewan.toml
+cif2qewan structure.cif cif2qewan.toml   # or: python -m cif2qewan.cli structure.cif cif2qewan.toml
 # ... run QE and Wannier90 calculations ...
 python -m cif2qewan.band_comp -o ./
 ```
@@ -113,6 +113,9 @@ The `cif2qewan.toml` file contains all necessary configuration parameters:
 | `scf_k_resolution` | K-point resolution for SCF (1/Å) | 0.15 |
 | `degauss` | Gaussian smearing (Ry) | 0.01 |
 | `pw2wan.write_unk` | Write UNK files for Wannier90 | ".true." |
+
+When `pw2wan.write_unk` is false, the generated `pwscf.win` also sets
+`wannier_plot = .false.` because Wannier-function plots require the UNK files.
 
 ### Pseudopotential List Format
 
@@ -145,17 +148,46 @@ cif2qewan structure.cif cif2qewan.toml --mag
 |--------|-------------|
 | `--so` | Include spin-orbit coupling |
 | `--mag` | Perform magnetic calculations |
+| `--reader {cif2cell,pymatgen}` | How to read the structure. `cif2cell` (default) runs cif2cell as in earlier versions; `pymatgen` reads the CIF directly and needs no cif2cell |
+| `--cif2cell-output FILE` | Reuse an existing cif2cell output (`cif_scf.in`) instead of running cif2cell |
+| `--output-dir DIR` | Write the inputs into `DIR` (default: the current directory) |
+| `--version` | Print the version |
+
+cif2cell is run in a temporary directory and its output is saved as
+`cif_scf.in` next to the generated inputs. Unlike earlier versions, an
+existing `cif_scf.in` is not picked up automatically; pass it with
+`--cif2cell-output` if you want to reuse it. Errors are reported as
+`cif2qewan: error: ...` with exit status 1.
+
+The `pymatgen` reader accepts only fully occupied sites; mixed or partial
+occupancies are rejected because the generated QE inputs cannot represent them.
+
+### Magnetic structures (MagCIF)
+
+With `--reader pymatgen` a MagCIF (`.mcif`) file is read including the site
+moments. Sites of one element with different moments become separate QE
+species (`Mn1`, `Mn2`, ...), and `starting_magnetization(i)`, `angle1(i)` and
+`angle2(i)` are set from the moments (relative to the largest one). A
+collinear structure is run like `--mag` (collinear SCF, noncollinear NSCF
+with `lforcet`), a noncollinear one is noncollinear from the SCF on; add
+`--so` for spin-orbit coupling. The Wannier functions are spinors in both
+cases. Moments in the file take precedence over `--mag`.
+
+```bash
+cif2qewan Mn3Sn.mcif cif2qewan.toml --so --reader pymatgen
+```
 
 ### Generated Files
 
 The script generates the following input files:
 
+- `cif_scf.in` - the cif2cell output (not written with `--reader pymatgen`)
 - `scf.in` - SCF calculation input
 - `nscf.in` - NSCF calculation input
 - `pw2wan.in` - pw2wannier90 interface input
 - `pwscf.win` - Wannier90 input
-- `band/` - Band structure calculation files
-- `check_wannier/` - Convergence check files
+- `band/` - Band structure calculation files (`nscf.in`, `band.in`, `proj.in`, `pp.in`)
+- `check_wannier/` - Convergence check files (`nscf.in`)
 
 ## Workflow
 
@@ -272,7 +304,8 @@ The script calculates two convergence metrics:
 ### Example 1: Iron (Fe) Crystal
 
 ```bash
-# Generate input files (see examples/PSLibrary/Fe/ for the CIF file)
+# Generate input files (see examples/PSLibrary/Fe*/ for the CIF file and
+# the reference outputs without options, with --so, and with --so --mag)
 cif2qewan mp-13_Fe.cif cif2qewan.toml --mag
 
 # Run calculations

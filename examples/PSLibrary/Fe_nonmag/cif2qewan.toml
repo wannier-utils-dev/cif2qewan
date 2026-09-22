@@ -1,0 +1,8 @@
+cif2cell_path = "/path/to/cif2cell"
+pseudo_dir = "/path/to/pslibrary"
+pp_list_path = "/path/to/cif2qewan/pp_psl_rrkj.csv"
+scf_k_resolution = 0.15
+degauss = 0.01
+
+[pw2wan]
+write_unk = ".true."

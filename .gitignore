@@ -163,3 +163,7 @@ Thumbs.db
 # be caught by the Quantum ESPRESSO / Wannier90 output patterns above.
 !examples/
 !examples/**
+
+# Internal development notes (not part of the repository)
+CLAUDE.md
+DEVELOPMENT_PLAN.md
