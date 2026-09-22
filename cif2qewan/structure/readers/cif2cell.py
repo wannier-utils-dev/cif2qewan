@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import re
+import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -260,9 +261,16 @@ class Cif2cellReader:
                     timeout=self.timeout,
                 )
             except OSError as exc:
+                reason = str(exc)
+                if shutil.which(self.cif2cell_path) is None:
+                    reason = (
+                        "not found; install it (pip install cif2cell) and set "
+                        "cif2cell_path in the TOML file if it is not on PATH, "
+                        "or read the CIF without cif2cell (--reader pymatgen)"
+                    )
                 raise ExternalCommandError(
                     command,
-                    message=f"cannot run cif2cell {self.cif2cell_path!r}: {exc}",
+                    message=f"cannot run cif2cell {self.cif2cell_path!r}: {reason}",
                 ) from exc
             except subprocess.TimeoutExpired as exc:
                 raise ExternalCommandError(

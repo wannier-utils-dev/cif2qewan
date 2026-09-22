@@ -9,8 +9,13 @@ from typing import Any, Dict, Union
 import toml
 
 from cif2qewan.exceptions import ConfigError
+from cif2qewan.qe.pseudopotential import DEFAULT_TABLE, resolve_table_path
 
 PathLike = Union[str, Path]
+
+#: ``cif2cell_path`` when the TOML file gives none: the command on PATH,
+#: which is where ``pip install cif2cell`` puts it.
+DEFAULT_CIF2CELL = "cif2cell"
 
 
 @dataclass(frozen=True)
@@ -19,12 +24,16 @@ class Config:
 
     Attributes
     ----------
-    cif2cell_path : str
-        The cif2cell executable (used by the cif2cell reader only).
     pseudo_dir : str
         ``pseudo_dir`` written into the QE inputs.
+    cif2cell_path : str
+        The cif2cell executable (used by the cif2cell reader only); by
+        default the ``cif2cell`` command on PATH.
     pp_list_path : str
-        CSV table of pseudopotentials and projections.
+        CSV table of pseudopotentials and projections. The bare file name of
+        a bundled table selects the installed copy
+        (:func:`cif2qewan.qe.pseudopotential.resolve_table_path`); the
+        attribute holds the resolved path. Default: ``pp_psl_rrkj.csv``.
     scf_k_resolution : float
         Target k-space resolution of the SCF mesh in 1/angstrom.
     degauss : float
@@ -37,11 +46,11 @@ class Config:
         The ``--so`` and ``--mag`` command-line options.
     """
 
-    cif2cell_path: str
     pseudo_dir: str
-    pp_list_path: str
     scf_k_resolution: float
     degauss: float
+    cif2cell_path: str = DEFAULT_CIF2CELL
+    pp_list_path: str = DEFAULT_TABLE
     pw2wan: Dict[str, Any] = field(default_factory=dict)
     so: bool = False
     mag: bool = False
@@ -50,6 +59,9 @@ class Config:
         for name in ("cif2cell_path", "pseudo_dir", "pp_list_path"):
             if not str(getattr(self, name)).strip():
                 raise ConfigError(f"{name} must not be empty")
+        object.__setattr__(
+            self, "pp_list_path", str(resolve_table_path(self.pp_list_path))
+        )
         if not (float(self.scf_k_resolution) > 0.0):
             raise ConfigError(
                 f"scf_k_resolution must be positive, got {self.scf_k_resolution}"
@@ -71,9 +83,7 @@ class Config:
             return True
         if normalized in {".false.", "false"}:
             return False
-        raise ConfigError(
-            f"{name} must be a boolean or .true./.false., got {value!r}"
-        )
+        raise ConfigError(f"{name} must be a boolean or .true./.false., got {value!r}")
 
     @property
     def write_unk(self) -> bool:
@@ -89,13 +99,7 @@ class Config:
     def from_dict(
         cls, data: Dict[str, Any], so: bool = False, mag: bool = False
     ) -> "Config":
-        required = (
-            "cif2cell_path",
-            "pseudo_dir",
-            "pp_list_path",
-            "scf_k_resolution",
-            "degauss",
-        )
+        required = ("pseudo_dir", "scf_k_resolution", "degauss")
         missing = [key for key in required if key not in data]
         if missing:
             raise ConfigError(f"missing configuration keys: {', '.join(missing)}")
@@ -104,11 +108,11 @@ class Config:
             raise ConfigError("the configuration needs a [pw2wan] table")
         try:
             return cls(
-                cif2cell_path=str(data["cif2cell_path"]),
                 pseudo_dir=str(data["pseudo_dir"]),
-                pp_list_path=str(data["pp_list_path"]),
                 scf_k_resolution=float(data["scf_k_resolution"]),
                 degauss=float(data["degauss"]),
+                cif2cell_path=str(data.get("cif2cell_path", DEFAULT_CIF2CELL)),
+                pp_list_path=str(data.get("pp_list_path", DEFAULT_TABLE)),
                 pw2wan=dict(pw2wan),
                 so=bool(so),
                 mag=bool(mag),

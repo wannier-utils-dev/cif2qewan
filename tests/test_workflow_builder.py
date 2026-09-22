@@ -4,6 +4,7 @@
 implementation alone produces all nine input files, byte for byte.
 """
 
+import pathlib
 import sys
 import types
 import warnings
@@ -20,7 +21,13 @@ from cif2qewan.exceptions import (
 )
 from cif2qewan.qe import kpoints
 from cif2qewan.qe.model import KPathPoint, KPointsAutomatic, KPointsPath, RawValue
-from cif2qewan.qe.pseudopotential import PseudopotentialEntry, PseudopotentialTable
+from cif2qewan.qe.pseudopotential import (
+    DEFAULT_TABLE,
+    PseudopotentialEntry,
+    PseudopotentialTable,
+    bundled_tables,
+    resolve_table_path,
+)
 from cif2qewan.qe.writer import render_namelist_input
 from cif2qewan.structure.compare import compare_structures
 from cif2qewan.structure.model import AtomicSite, NormalizedStructure
@@ -54,6 +61,43 @@ def test_config_from_the_example_toml():
     assert config.degauss == pytest.approx(0.01)
     assert config.pw2wan == {"write_unk": ".true."}
     assert config.so and not config.mag and config.spinor
+    # the example gives neither key: cif2cell from PATH, the bundled PSL table
+    assert config.cif2cell_path == "cif2cell"
+    assert config.pp_list_path == str(PSL)
+
+
+def test_bundled_tables_are_installed():
+    assert bundled_tables() == (
+        "nc-sr-05_pbe_standard_upf.csv",
+        "nc-sr-05_pbe_stringent_upf.csv",
+        "pp_psl_rrkj.csv",
+    )
+    assert DEFAULT_TABLE in bundled_tables()
+    for name in bundled_tables():
+        path = resolve_table_path(name)
+        assert path.is_file()
+        assert "Fe" in PseudopotentialTable.from_csv(path)
+
+
+def test_pp_list_path_resolution(tmp_path):
+    base = {"pseudo_dir": "p", "scf_k_resolution": 0.15, "degauss": 0.01}
+    pw2wan = {"write_unk": ".true."}
+    dojo = str(PACKAGE / "nc-sr-05_pbe_standard_upf.csv")
+    # a bare bundled name selects the installed copy
+    config = Config.from_dict(
+        {**base, "pp_list_path": "nc-sr-05_pbe_standard_upf.csv", "pw2wan": pw2wan}
+    )
+    assert config.pp_list_path == dojo
+    # a path with a directory part is taken as given, even with a bundled name
+    local = tmp_path / "pp_psl_rrkj.csv"
+    config = Config.from_dict({**base, "pp_list_path": str(local), "pw2wan": pw2wan})
+    assert config.pp_list_path == str(local)
+    assert resolve_table_path("./pp_psl_rrkj.csv") == pathlib.Path("./pp_psl_rrkj.csv")
+    # an unknown bare name is a relative path and fails when the table is read
+    config = Config.from_dict({**base, "pp_list_path": "other.csv", "pw2wan": pw2wan})
+    assert config.pp_list_path == "other.csv"
+    with pytest.raises(PseudopotentialError, match="not found"):
+        WorkflowBuilder(config)
 
 
 def test_config_errors(tmp_path):

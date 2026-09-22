@@ -61,13 +61,15 @@ def test_missing_toml_is_reported_without_a_traceback(tmp_path):
 
 def test_unusable_cif2cell_is_reported(tmp_path):
     """The configured cif2cell path does not exist: no output, clear message."""
-    write_example_toml(FE, tmp_path)
+    write_example_toml(FE, tmp_path, cif2cell_path="/path/to/cif2cell")
     (tmp_path / "structure.cif").write_text((FE.reference / "mp-13_Fe.cif").read_text())
     result = run_cli(["structure.cif", "cif2qewan.toml"], tmp_path)
     assert result.returncode == 1
     assert (
         "cannot run cif2cell" in result.stderr and "/path/to/cif2cell" in result.stderr
     )
+    assert "pip install cif2cell" in result.stderr
+    assert "--reader pymatgen" in result.stderr
     assert "Traceback" not in result.stderr
     assert generated_files(tmp_path) == {"structure.cif"}  # only the input we wrote
 

@@ -10,12 +10,11 @@ passed to the CLI with ``--cif2cell-output``.
 """
 
 import pathlib
-import re
-import toml
 import shutil
 from typing import NamedTuple
 
 import pytest
+import toml
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 EXAMPLES = REPO_ROOT / "examples"
@@ -58,15 +57,16 @@ EXAMPLE_CASES = [
 ]
 
 
-def write_example_toml(case, workdir):
-    """Copy the example's TOML with pp_list_path pointed at this checkout."""
-    toml = (case.reference / "cif2qewan.toml").read_text()
-    toml = re.sub(
-        r'pp_list_path = ".*"',
-        f'pp_list_path = "{PACKAGE / case.pp_csv}"',
-        toml,
-    )
-    (workdir / "cif2qewan.toml").write_text(toml)
+def write_example_toml(case, workdir, **extra):
+    """Copy the example's TOML into workdir, with ``key = "value"`` lines added.
+
+    The extra keys go before the tables. The examples select their
+    pseudopotential table by its bundled file name (or use the default), so
+    nothing needs to be rewritten.
+    """
+    text = (case.reference / "cif2qewan.toml").read_text()
+    text = "".join(f'{key} = "{value}"\n' for key, value in extra.items()) + text
+    (workdir / "cif2qewan.toml").write_text(text)
 
 
 def generate(case, workdir):
@@ -122,11 +122,10 @@ def generated(request, tmp_path_factory):
 
 
 def example_config(case, so=None, mag=None):
-    """The example's Config with pp_list_path pointed at this checkout."""
+    """The example's Config; its table is the bundled ``case.pp_csv``."""
     from cif2qewan.config import Config
 
     data = toml.load(case.reference / "cif2qewan.toml")
-    data["pp_list_path"] = str(PACKAGE / case.pp_csv)
     return Config.from_dict(
         data,
         so=case.so if so is None else so,
