@@ -24,6 +24,12 @@ scf_k_resolution = 0.15
 # Gaussian smearing (in Ry)
 degauss = 0.01
 
+# Cell representation in the QE inputs. Default (false): ibrav = 0 with the
+# lattice vectors in CELL_PARAMETERS. true: QE's Bravais lattice index ibrav
+# with A, B, C, cosAB, ... (as in mcif2qewan and cif2x); the structure is
+# re-expressed in QE's lattice vectors.
+# use_ibrav = false
+
 # pw2wannier90 options
 [pw2wan]
 # Write the UNK files needed to plot Wannier functions (true / false)

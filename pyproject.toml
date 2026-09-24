@@ -39,6 +39,7 @@ dependencies = [
     "toml>=0.10.0",
     "matplotlib>=3.3.0",
     "seekpath>=2.1.0",
+    "spglib>=2.0.0",
 ]
 
 [project.optional-dependencies]
