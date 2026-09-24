@@ -31,7 +31,6 @@ monoclinic groups).
 
 from __future__ import annotations
 
-import itertools
 import logging
 import math
 from dataclasses import dataclass
@@ -48,10 +47,6 @@ logger = logging.getLogger(__name__)
 #: Relative deviation allowed between the metric of the structure's lattice
 #: and the metric of the QE lattice built from the standardized parameters.
 LATTICE_TOLERANCE = 1.0e-3
-
-#: Largest integer coefficient tried when expressing the QE lattice vectors
-#: in the lattice vectors of the structure.
-_MAX_COEFFICIENT = 3
 
 _CRYSTAL_SYSTEMS = (
     (2, "triclinic"),
@@ -349,6 +344,47 @@ def _symmetry(structure: NormalizedStructure, symprec: float):
     )
 
 
+def _vectors_of_length(
+    old: np.ndarray, length_squared: float, tolerance: float
+) -> list[np.ndarray]:
+    """Integer lattice vectors with the requested squared length.
+
+    QR makes ``|m @ old|**2`` a sum of three squares. Enumerating the
+    coefficients from the last square to the first bounds each coefficient
+    by the remaining length, even for an arbitrarily sheared input basis.
+    """
+    _, upper = np.linalg.qr(old.T)
+    coefficients = np.zeros(3, dtype=int)
+    matches: list[np.ndarray] = []
+    limit = length_squared + tolerance
+
+    def search(index: int, used: float) -> None:
+        if index < 0:
+            if abs(used - length_squared) <= tolerance:
+                matches.append(coefficients.copy())
+            return
+        remaining = limit - used
+        if remaining < 0:
+            return
+        offset = float(np.dot(upper[index, index + 1 :], coefficients[index + 1 :]))
+        diagonal = float(upper[index, index])
+        center = -offset / diagonal
+        radius = math.sqrt(remaining) / abs(diagonal)
+        # Widen the floating-point bounds slightly so a boundary vector is
+        # still checked against the exact tolerance at the recursion leaf.
+        first = math.ceil(center - radius - 1.0e-10)
+        last = math.floor(center + radius + 1.0e-10)
+        for value in range(first, last + 1):
+            coefficients[index] = value
+            search(index - 1, used + (diagonal * value + offset) ** 2)
+
+    search(2, 0.0)
+    # Preserve the former lexicographic tie order for symmetry-equivalent
+    # bases, so the chosen Cartesian frame stays stable.
+    matches.sort(key=tuple)
+    return matches
+
+
 def _basis_change(old: np.ndarray, new: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Integer ``M`` (det +1) and rotation ``R`` with ``new = M @ old @ R``.
 
@@ -362,10 +398,9 @@ def _basis_change(old: np.ndarray, new: np.ndarray) -> Tuple[np.ndarray, np.ndar
     scale = float(np.max(np.abs(np.diag(g_new))))
     tolerance = 2 * LATTICE_TOLERANCE * scale
 
-    span = range(-_MAX_COEFFICIENT, _MAX_COEFFICIENT + 1)
-    vectors = np.array(list(itertools.product(span, span, span)), dtype=int)
-    norms = np.einsum("ij,jk,ik->i", vectors, g_old, vectors)
-    candidates = [vectors[np.abs(norms - g_new[i, i]) <= tolerance] for i in range(3)]
+    candidates = [
+        _vectors_of_length(old, float(g_new[i, i]), tolerance) for i in range(3)
+    ]
 
     best = None
     for m1 in candidates[0]:

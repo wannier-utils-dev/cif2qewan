@@ -139,6 +139,18 @@ def test_every_ibrav_reproduces_the_crystal(
     assert_same_crystal(structure, new)
 
 
+@pytest.mark.parametrize("shear", [4, 17])
+def test_primitive_cell_with_large_integer_shear(shear):
+    """An arbitrary primitive basis must not be limited to small coefficients."""
+    old = NormalizedStructure(
+        np.array([[3.0, 0, 0], [3.0 * shear, 3.0, 0], [0, 0, 3.0]]),
+        (AtomicSite("Po", (0.123, 0.234, 0.345)),),
+    )
+    new, bravais = bravais_structure(old)
+    assert bravais.ibrav == 1
+    assert_same_crystal(old, new)
+
+
 def test_qe_lattice_definitions():
     """Lengths, angles and centering vectors of QE's latgen lattices."""
     p = {"A": 3.0, "B": 4.0, "C": 5.0, "cosBC": 0.1, "cosAC": -0.2, "cosAB": 0.3}
