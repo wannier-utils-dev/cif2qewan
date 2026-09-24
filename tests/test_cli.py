@@ -6,10 +6,12 @@ examples, the ``--reader pymatgen`` path, and the deprecated
 ``python -m cif2qewan.cif2qewan`` entry point.
 """
 
+import re
 import shutil
 import subprocess
 import sys
 
+import numpy as np
 import pytest
 
 from conftest import EXAMPLE_CASES, generated_files, write_example_toml
@@ -151,6 +153,47 @@ def test_pymatgen_reader_path(tmp_path):
     scf = (tmp_path / "scf.in").read_text()
     assert "21 21 21  0 0 0" in scf
     assert "Fe.pbe-spn-rrkjus_psl.0.2.1.UPF" in scf
+
+
+@pytest.mark.parametrize("reader", ["cif2cell-output", "pymatgen"])
+def test_use_ibrav_writes_the_bravais_lattice(tmp_path, reader):
+    """use_ibrav = true: ibrav = -3 for bcc Fe, no CELL_PARAMETERS, same cell in the win."""
+    pytest.importorskip("seekpath")
+    pytest.importorskip("pymatgen")
+    pytest.importorskip("spglib")
+    shutil.copy(FE.reference / "mp-13_Fe.cif", tmp_path)
+    write_example_toml(FE, tmp_path, use_ibrav=True)
+    if reader == "pymatgen":
+        args = ["mp-13_Fe.cif", "cif2qewan.toml", "--reader", "pymatgen"]
+    else:
+        shutil.copy(FE.reference / "cif_scf.in", tmp_path)
+        args = ["mp-13_Fe.cif", "cif2qewan.toml", "--cif2cell-output", "cif_scf.in"]
+    result = run_cli([*args, "-v"], tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "ibrav = -3 (Im-3m, No. 229" in result.stderr
+    # the pymatgen reader takes A from the CIF (2.863040...), cif2cell rounds it
+    cell_lines = []
+    for name in ("scf.in", "nscf.in", "check_wannier/nscf.in", "band/nscf.in"):
+        text = (tmp_path / name).read_text()
+        match = re.search(r"\n  ibrav = -3\n  A = (2\.8630[34]\d+)\n  nat = 1\n", text)
+        assert match, text
+        cell_lines.append(match.group(1))
+        assert "CELL_PARAMETERS" not in text
+    assert len(set(cell_lines)) == 1
+    alat = float(cell_lines[0])
+    assert "21 21 21  0 0 0" in (tmp_path / "scf.in").read_text()
+    win = (tmp_path / "pwscf.win").read_text().splitlines()
+    rows = win[win.index("begin unit_cell_cart") + 2 : win.index("end unit_cell_cart")]
+    cell = [[float(x) for x in row.split()] for row in rows]
+    expected = alat / 2 * np.array([[-1, 1, 1], [1, -1, 1], [1, 1, -1]])
+    assert cell == pytest.approx(expected, abs=1e-7)
+
+
+def test_use_ibrav_must_be_a_boolean(tmp_path):
+    write_example_toml(FE, tmp_path, use_ibrav="yes")
+    result = run_cli(["x.cif", "cif2qewan.toml"], tmp_path)
+    assert result.returncode == 1
+    assert "use_ibrav must be true or false" in result.stderr
 
 
 def test_old_module_entry_point_still_works(tmp_path):

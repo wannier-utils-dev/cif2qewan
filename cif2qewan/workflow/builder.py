@@ -30,6 +30,13 @@ Magnetism policy:
   two-step scheme above with the sign and the common axis of the moments; a
   noncollinear order is run noncollinear from the SCF on with ``angle1`` /
   ``angle2`` per species. Either way the Wannier functions are spinors.
+
+Cell representation: ``ibrav = 0`` with ``CELL_PARAMETERS {alat}`` by
+default. With ``use_ibrav`` the structure is first re-expressed in QE's
+Bravais lattice (:mod:`cif2qewan.qe.bravais`); the &system namelist then
+carries ``ibrav`` and ``A``, ``B``, ``C``, ``cosAB``, ... and no
+``CELL_PARAMETERS`` card, and the SCF mesh is derived from the new vectors
+(cif2cell's ``alat`` and mesh refer to its own vectors and are not used).
 """
 
 from __future__ import annotations
@@ -43,6 +50,7 @@ import numpy as np
 
 from cif2qewan.config import Config
 from cif2qewan.exceptions import InputModelError, StructureError
+from cif2qewan.qe.bravais import BravaisLattice, bravais_structure
 from cif2qewan.qe.kpoints import (
     Mesh,
     atomic_mass,
@@ -306,6 +314,13 @@ class WorkflowBuilder:
                 f"{partial.occupancy}; partial occupancy is not supported"
             )
 
+        bravais: Optional[BravaisLattice] = None
+        if config.use_ibrav:
+            structure, bravais = bravais_structure(structure)
+            # alat and the SCF mesh of the source belong to its own lattice
+            # vectors; the masses are per species and stay valid.
+            hints = StructureHints(masses=hints.masses)
+
         order = magnetic_order(structure)
         if order != NONMAGNETIC:
             structure, magnetic_species = classify_magnetic_sites(structure)
@@ -328,12 +343,25 @@ class WorkflowBuilder:
         ecutwfc, ecutrho = self._cutoffs(entries.values())
         counts = self._counts(structure, entries, spin.spinor)
 
-        alat = (
-            hints.alat
-            if hints.alat is not None
-            else float(np.linalg.norm(structure.lattice_matrix[0]))
-        )
-        cell = CellParameters("alat", structure.lattice_matrix / alat)
+        if bravais is None:
+            alat = (
+                hints.alat
+                if hints.alat is not None
+                else float(np.linalg.norm(structure.lattice_matrix[0]))
+            )
+            cell: Optional[CellParameters] = CellParameters(
+                "alat", structure.lattice_matrix / alat
+            )
+            cell_entries: Dict = {"ibrav": 0, "A": RawValue(f"{alat:10.5f}")}
+        else:
+            cell = None
+            cell_entries = {"ibrav": bravais.ibrav}
+            cell_entries.update(
+                {
+                    key: RawValue(f"{value:.10f}")
+                    for key, value in bravais.parameters.items()
+                }
+            )
         positions = tuple(
             AtomicPosition(site.label, site.frac_coords) for site in structure.sites
         )
@@ -378,7 +406,7 @@ class WorkflowBuilder:
             )
 
         base_system = self._base_system(
-            alat, structure.num_sites, len(labels), ecutwfc, ecutrho
+            cell_entries, structure.num_sites, len(labels), ecutwfc, ecutrho
         )
 
         scf = pw_input(
@@ -539,10 +567,9 @@ class WorkflowBuilder:
         entries.update(extra)
         return Namelist("control", entries)
 
-    def _base_system(self, alat, nat, ntyp, ecutwfc, ecutrho) -> Dict:
+    def _base_system(self, cell_entries, nat, ntyp, ecutwfc, ecutrho) -> Dict:
         return {
-            "ibrav": 0,
-            "A": RawValue(f"{alat:10.5f}"),
+            **cell_entries,
             "nat": nat,
             "ntyp": ntyp,
             "ecutwfc": ecutwfc,

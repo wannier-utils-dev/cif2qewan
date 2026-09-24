@@ -11,6 +11,7 @@ import warnings
 
 import numpy as np
 import pytest
+import toml
 
 from cif2qewan.config import Config
 from cif2qewan.exceptions import (
@@ -408,6 +409,33 @@ def test_wannier_plot_requires_unk_files(write_unk, enabled):
         f" write_unk = {'.true.' if enabled else '.false.'}\n"
         in render_namelist_input(plan.pw2wan)
     )
+
+
+def test_use_ibrav_plan_shares_the_qe_lattice():
+    """With use_ibrav every pw.x input carries ibrav/A and no cell; the win matches."""
+    pytest.importorskip("spglib")
+    from cif2qewan.qe.bravais import qe_lattice
+
+    data = toml.load(FE / "cif2qewan.toml")
+    data["use_ibrav"] = True
+    config = Config.from_dict(data, so=True, mag=True)
+    assert config.use_ibrav
+    output = Cif2cellReader.read_output(FE / "cif_scf.in")
+    plan = build_plan(output.structure, config, StructureHints.from_cif2cell(output))
+    expected = qe_lattice(-3, {"A": output.alat})
+    for pw in (plan.scf, plan.nscf, plan.check_wannier, plan.bands_nscf):
+        assert pw.cell is None
+        assert pw.system.entries["ibrav"] == -3
+        assert pw.system.entries["A"] == RawValue(f"{output.alat:.10f}")
+        assert "B" not in pw.system.entries
+        keys = list(pw.system.entries)
+        assert keys.index("A") == keys.index("ibrav") + 1 < keys.index("nat")
+    assert np.array(plan.wannier90.unit_cell_cart) == pytest.approx(expected)
+    assert plan.structure.lattice_matrix == pytest.approx(expected)
+    # the k mesh is recomputed for the new vectors (identical for bcc Fe)
+    assert plan.scf.kpoints.mesh == (21, 21, 21)
+    text = render_plan(plan)["scf.in"]
+    assert "CELL_PARAMETERS" not in text and "\n  ibrav = -3\n" in text
 
 
 def test_hints_must_match_the_structure():

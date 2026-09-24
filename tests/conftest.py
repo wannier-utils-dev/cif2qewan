@@ -58,15 +58,21 @@ EXAMPLE_CASES = [
 
 
 def write_example_toml(case, workdir, **extra):
-    """Copy the example's TOML into workdir, with ``key = "value"`` lines added.
+    """Copy the example's TOML into workdir, with ``key = value`` lines added.
 
-    The extra keys go before the tables. The examples select their
+    Strings are quoted, booleans written as ``true``/``false``; the extra
+    keys go before the tables. The examples select their
     pseudopotential table by its bundled file name (or use the default), so
     nothing needs to be rewritten.
     """
     text = (case.reference / "cif2qewan.toml").read_text()
-    text = "".join(f'{key} = "{value}"\n' for key, value in extra.items()) + text
-    (workdir / "cif2qewan.toml").write_text(text)
+    lines = []
+    for key, value in extra.items():
+        if isinstance(value, bool):
+            lines.append(f"{key} = {'true' if value else 'false'}\n")
+        else:
+            lines.append(f'{key} = "{value}"\n')
+    (workdir / "cif2qewan.toml").write_text("".join(lines) + text)
 
 
 def generate(case, workdir):

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- `use_ibrav = true` in `cif2qewan.toml` writes the cell as QE's
+  Bravais-lattice index `ibrav` with `A`, `B`, `C`, `cosAB`, `cosAC`, `cosBC`
+  instead of `ibrav = 0` with `CELL_PARAMETERS`, as mcif2qewan and cif2x do
+  (`cif2qewan.qe.bravais`). The lattice type comes from the space group found
+  by spglib; the structure is re-expressed in QE's lattice vectors (rotated
+  moments included), `pwscf.win` uses the same vectors and the SCF mesh is
+  recomputed from them. The vectors follow QE 7.x (`ibrav = -13` as defined
+  since QE 6.4.1). spglib, already required by seekpath, is now a declared
+  dependency.
+
 ### Changed
 - `pp_list_path` and `cif2cell_path` in `cif2qewan.toml` are optional. The
   default table is the bundled PSLibrary table `pp_psl_rrkj.csv`; the bare

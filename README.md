@@ -83,6 +83,9 @@ scf_k_resolution = 0.15
 # Gaussian smearing (Ry)
 degauss = 0.01
 
+# Cell as QE's ibrav + A, B, C, ... instead of ibrav = 0 (default: false)
+# use_ibrav = true
+
 # pw2wannier90 configuration
 [pw2wan]
 write_unk = ".true."
@@ -114,9 +117,36 @@ The `cif2qewan.toml` file contains all necessary configuration parameters:
 | `pw2wan.write_unk` | Write UNK files for Wannier90 | Required (".true." in the sample) |
 | `pp_list_path` | Pseudopotential table: the file name of a bundled table, or a path | `"pp_psl_rrkj.csv"` |
 | `cif2cell_path` | cif2cell executable (default reader only) | `"cif2cell"` on PATH |
+| `use_ibrav` | Write the cell as QE's `ibrav` with `A`, `B`, `C`, `cosAB`, ... instead of `ibrav = 0` with `CELL_PARAMETERS` | `false` |
 
 When `pw2wan.write_unk` is false, the generated `pwscf.win` also sets
 `wannier_plot = .false.` because Wannier-function plots require the UNK files.
+
+### Cell representation (`use_ibrav`)
+
+By default the cell is written as `ibrav = 0` with the lattice vectors of the
+structure in `CELL_PARAMETERS {alat}`. With `use_ibrav = true` the inputs use
+QE's Bravais-lattice index instead, as mcif2qewan and cif2x do: the lattice
+type is determined with spglib from the space group of the structure and the
+`&system` namelist gets `ibrav` and the lattice parameters `A`, `B`, `C`,
+`cosAB`, `cosAC`, `cosBC` (in angstrom and as cosines), with no
+`CELL_PARAMETERS` card. `pw.x` then builds the lattice vectors itself, so the
+structure is re-expressed in exactly those vectors: the atoms get new
+fractional coordinates, the whole crystal (magnetic moments included) is
+rigidly rotated into QE's orientation, and `pwscf.win` uses the same vectors.
+The SCF k mesh is derived from the new vectors with `scf_k_resolution`
+(cif2cell's mesh belongs to its own vectors and is not used).
+
+The values written are `1`, `2`, `-3` (cubic P, F, I), `4` (hexagonal and
+trigonal P), `5` (rhombohedral, with the rhombohedral `A` and `cosAB`), `6`,
+`7` (tetragonal P, I), `8`, `9`, `91`, `10`, `11` (orthorhombic P, C, A, F,
+I), `-12`, `-13` (monoclinic P and C, unique axis b) and `14` (triclinic).
+They follow `Modules/latgen.f90` of Quantum ESPRESSO 7.x; the definition of
+`ibrav = -13` changed in QE 6.4.1, so the generated inputs need QE 6.4.1 or
+later. Moments that only break point symmetry (a ferromagnet, the kagome
+moments of Mn3Sn) leave the lattice type unchanged; a magnetic cell larger
+than the chemical primitive cell (an antiferromagnet) keeps its own, lower
+lattice type. `-v` reports the space group and the parameters chosen.
 
 ### Pseudopotential Tables
 
