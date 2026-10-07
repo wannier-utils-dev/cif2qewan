@@ -9,6 +9,7 @@ Wannier90 inputs for a noncollinear (Mn3Sn) and a collinear
 
 import re
 import shutil
+import warnings
 import subprocess
 import sys
 
@@ -160,8 +161,8 @@ def test_classification_rejects_label_clashes():
 def test_qe_magnetization_values():
     _, species = classify_magnetic_sites(afm_fe())
     mag = qe_magnetization(species, COLLINEAR)
-    assert mag["Fe1"].starting_magnetization == pytest.approx(1.0)
-    assert mag["Fe2"].starting_magnetization == pytest.approx(-1.0)
+    assert mag["Fe1"].starting_magnetization == pytest.approx(2.2)  # mu_B
+    assert mag["Fe2"].starting_magnetization == pytest.approx(-2.2)
     assert (mag["Fe1"].angle1, mag["Fe1"].angle2) == (0.0, 0.0)
     assert (mag["Fe2"].angle1, mag["Fe2"].angle2) == (
         0.0,
@@ -177,10 +178,24 @@ def test_qe_magnetization_values():
     )
     _, species = classify_magnetic_sites(canted)
     mag = qe_magnetization(species, NONCOLLINEAR)
-    assert mag["Fe1"].starting_magnetization == pytest.approx(1.0)
-    assert mag["Fe2"].starting_magnetization == pytest.approx(0.5)
+    assert mag["Fe1"].starting_magnetization == pytest.approx(3.0)
+    assert mag["Fe2"].starting_magnetization == pytest.approx(1.5)
     assert (mag["Fe2"].angle1, mag["Fe2"].angle2) == pytest.approx((90.0, 0.0))
     assert mag["Sn"].is_zero and (mag["Sn"].angle1, mag["Sn"].angle2) == (0.0, 0.0)
+
+    # collinear along x with a non-magnetic species: it carries the axis angles
+    collinear_x = cubic(
+        (
+            AtomicSite("O", (0.5, 0, 0)),
+            AtomicSite("Fe", (0, 0, 0), MagneticMoment((2.2, 0, 0))),
+            AtomicSite("Fe", (0.5, 0.5, 0.5), MagneticMoment((-2.2, 0, 0))),
+        )
+    )
+    _, species = classify_magnetic_sites(collinear_x)
+    mag = qe_magnetization(species, COLLINEAR)
+    assert mag["O"].is_zero and (mag["O"].angle1, mag["O"].angle2) == (90.0, 0.0)
+    assert mag["Fe1"].starting_magnetization == pytest.approx(2.2)
+    assert mag["Fe2"].starting_magnetization == pytest.approx(-2.2)
 
     assert all(m.is_zero for m in qe_magnetization(species, NONMAGNETIC).values())
 
@@ -277,7 +292,7 @@ def test_mn3sn_plan_is_noncollinear_from_the_scf(tmp_path):
 
     scf = plan.scf.system.entries
     assert scf["noncolin"] is True and scf["lspinorb"] is True and "nspin" not in scf
-    assert scf["starting_magnetization(1)"] == RawValue("1.0000")
+    assert scf["starting_magnetization(1)"] == RawValue("3.0000")  # 3 mu_B
     assert scf["starting_magnetization(4)"] == RawValue("0.0000")
     assert (scf["angle1(1)"], scf["angle2(1)"]) == (
         RawValue("90.0000"),
@@ -340,7 +355,7 @@ def test_mn3sn_plan_with_use_ibrav_keeps_the_magnetic_order():
     ]
     assert system["noncolin"] is True and system["lspinorb"] is True
     for i in (1, 2, 3):
-        assert system[f"starting_magnetization({i})"] == RawValue("1.0000")
+        assert system[f"starting_magnetization({i})"] == RawValue("3.0000")
         # the kagome moments stay in the plane perpendicular to the hexagonal axis
         assert system[f"angle1({i})"] == RawValue("90.0000")
     assert "angle1(4)" not in system
@@ -366,8 +381,8 @@ def test_afm_plan_is_collinear_scf_then_noncollinear_nscf():
     plan = build_plan(afm_fe(), psl_config(so=False))
     scf = plan.scf.system.entries
     assert scf["nspin"] == 2 and "noncolin" not in scf
-    assert scf["starting_magnetization(1)"] == RawValue("1.0000")
-    assert scf["starting_magnetization(2)"] == RawValue("-1.0000")
+    assert scf["starting_magnetization(1)"] == RawValue("2.2000")
+    assert scf["starting_magnetization(2)"] == RawValue("-2.2000")
     assert "angle1(1)" not in scf
     nscf = plan.nscf.system.entries
     assert (
@@ -375,7 +390,7 @@ def test_afm_plan_is_collinear_scf_then_noncollinear_nscf():
         and nscf["lforcet"] is True
         and nscf["lspinorb"] is False
     )
-    assert nscf["starting_magnetization(2)"] == RawValue("-1.0000")
+    assert nscf["starting_magnetization(2)"] == RawValue("-2.2000")
     assert (nscf["angle1(1)"], nscf["angle2(1)"]) == (
         RawValue("0.0000"),
         RawValue("0.0000"),
@@ -384,6 +399,49 @@ def test_afm_plan_is_collinear_scf_then_noncollinear_nscf():
     assert (
         plan.scf.species[0].pseudo_file == "Fe.pbe-spn-rrkjus_psl.0.2.1.UPF"
     )  # scalar rel.
+
+
+def test_collinear_axis_is_written_for_a_nonmagnetic_first_species():
+    """lforcet rotates by the angles of type 1: O first, moments along x."""
+    structure = cubic(
+        (
+            AtomicSite("O", (0.5, 0, 0)),
+            AtomicSite("Fe", (0, 0, 0), MagneticMoment((2.2, 0, 0))),
+            AtomicSite("Fe", (0.5, 0.5, 0.5), MagneticMoment((-2.2, 0, 0))),
+        )
+    )
+    plan = build_plan(structure, psl_config(so=False))
+    assert [s.label for s in plan.scf.species] == ["O", "Fe1", "Fe2"]
+    scf = plan.scf.system.entries
+    assert scf["nspin"] == 2 and "angle1(1)" not in scf
+    assert scf["starting_magnetization(1)"] == RawValue("0.0000")
+    assert scf["starting_magnetization(2)"] == RawValue("2.2000")
+    assert scf["starting_magnetization(3)"] == RawValue("-2.2000")
+    for name in ("nscf", "check_wannier", "bands_nscf"):
+        nscf = getattr(plan, name).system.entries
+        assert nscf["lforcet"] is True and nscf["noncolin"] is True
+        for i in (1, 2, 3):  # the common axis, type 1 included
+            assert nscf[f"angle1({i})"] == RawValue("90.0000")
+            assert nscf[f"angle2({i})"] == RawValue("0.0000")
+    assert "  angle1(1) = 90.0000\n" in render_plan(plan)["nscf.in"]
+
+
+def test_weak_moments_warn_about_the_qe_interpretation():
+    weak = cubic(
+        (
+            AtomicSite("Fe", (0, 0, 0), MagneticMoment((0, 0, 0.4))),
+            AtomicSite("Fe", (0.5, 0.5, 0.5), MagneticMoment((0, 0, -0.4))),
+        )
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        plan = build_plan(weak, psl_config(so=False))
+    assert any("below 1" in str(w.message) for w in caught)
+    assert plan.scf.system.entries["starting_magnetization(1)"] == RawValue("0.4000")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        build_plan(afm_fe(), psl_config(so=False))
+    assert not any("below 1" in str(w.message) for w in caught)
 
 
 def test_structure_moments_take_precedence_over_mag_flag():

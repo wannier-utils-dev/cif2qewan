@@ -26,8 +26,13 @@ Magnetism policy:
   with the fully relativistic pseudopotentials when ``--so`` is also given.
 - Moments in the structure (MCIF): species are split by moment
   (:mod:`cif2qewan.structure.magnetism`) and ``starting_magnetization`` is
-  the moment relative to the largest one. A collinear order follows the
-  two-step scheme above with the sign and the common axis of the moments; a
+  the moment in Bohr magneton (QE >= 7.3 reads it as such once a value is
+  >= 1; older versions clamp to the fully polarized [-1, 1]; a warning is
+  issued when every moment is below 1 Bohr magneton, where QE reads the
+  values as polarization per valence electron). A collinear order follows
+  the two-step scheme above with the sign and the common axis of the
+  moments, the axis angles being written for every species because
+  ``lforcet`` rotates the density by the angles of atomic type 1; a
   noncollinear order is run noncollinear from the SCF on with ``angle1`` /
   ``angle2`` per species. Either way the Wannier functions are spinors.
 
@@ -279,10 +284,16 @@ class SpinPolicy:
         }
 
     def _angles(self, labels) -> Dict:
+        """``angle1(i)`` / ``angle2(i)`` of the magnetic species.
+
+        For a collinear order every species gets the angles of the common
+        axis: ``lforcet`` rotates the collinear density by the angles of
+        atomic type 1, which may be a non-magnetic species.
+        """
         angles: Dict = {}
         for i, label in enumerate(labels):
             m = self.magnetization[label]
-            if m.is_zero:
+            if m.is_zero and self.order != COLLINEAR:
                 continue
             angles[f"angle1({i + 1})"] = RawValue(f"{m.angle1:.4f}")
             angles[f"angle2({i + 1})"] = RawValue(f"{m.angle2:.4f}")
@@ -336,6 +347,15 @@ class WorkflowBuilder:
                 order,
                 ", ".join(f"{sp.label}({sp.count})" for sp in magnetic_species),
             )
+            largest = max(sp.moment.magnitude for sp in magnetic_species)
+            if largest < 1.0:
+                warnings.warn(
+                    f"the largest moment of the structure is {largest:.3f} mu_B; "
+                    "Quantum ESPRESSO reads starting_magnetization values below 1 "
+                    "as the polarization per valence electron, not as moments in "
+                    "mu_B, so the initial magnetization will be larger than the "
+                    "moments of the structure"
+                )
         else:
             magnetization = {}
         spin = SpinPolicy(order, magnetization, so=config.so, mag=config.mag)

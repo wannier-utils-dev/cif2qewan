@@ -65,12 +65,16 @@ without options, with `--so`, and with `--so --mag`.
 
 With `--reader pymatgen` a MagCIF (`.mcif`) file is read including the site
 moments. Sites of one element with different moments become separate QE
-species (`Mn1`, `Mn2`, ...), and `starting_magnetization(i)`, `angle1(i)` and
-`angle2(i)` are set from the moments (relative to the largest one). A
-collinear order is run like `--mag` (collinear SCF, noncollinear NSCF with
-`lforcet`), a noncollinear one is noncollinear from the SCF on; add `--so`
-for spin-orbit coupling. The Wannier functions are spinors in both cases.
-Moments in the file take precedence over `--mag`.
+species (`Mn1`, `Mn2`, ...), and `starting_magnetization(i)` (the moment in
+Bohr magneton, as Quantum ESPRESSO 7.3 and later read it; older versions
+clamp it to the fully polarized value), `angle1(i)` and `angle2(i)` are set
+from the moments. A collinear order is run like `--mag` (collinear SCF,
+noncollinear NSCF with `lforcet`, the axis angles written for every species
+because `lforcet` uses those of atomic type 1), a noncollinear one is
+noncollinear from the SCF on; add `--so` for spin-orbit coupling. The
+Wannier functions are spinors in both cases. Moments in the file take
+precedence over `--mag`. When every moment is below 1 Bohr magneton, QE
+reads the values as polarization per valence electron and cif2qewan warns.
 
 ```bash
 cif2qewan Mn3Sn.mcif cif2qewan.toml --so --reader pymatgen
