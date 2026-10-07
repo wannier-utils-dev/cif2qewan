@@ -48,6 +48,10 @@ class Config:
         Write the cell as QE's ``ibrav`` and ``A``, ``B``, ``C``, ``cosAB``,
         ... instead of ``ibrav = 0`` with ``CELL_PARAMETERS``
         (:mod:`cif2qewan.qe.bravais`). Default false.
+    use_symwan : bool
+        Prepare the Wannier90 NSCF run for symWannier: irreducible k points
+        (no ``nosym``, automatic mesh) and ``irr_bz = .true.`` in
+        ``pw2wan.in``. Default false.
     """
 
     pseudo_dir: str
@@ -59,6 +63,7 @@ class Config:
     so: bool = False
     mag: bool = False
     use_ibrav: bool = False
+    use_symwan: bool = False
 
     def __post_init__(self) -> None:
         for name in ("cif2cell_path", "pseudo_dir", "pp_list_path"):
@@ -111,9 +116,11 @@ class Config:
         pw2wan = data.get("pw2wan")
         if not isinstance(pw2wan, dict):
             raise ConfigError("the configuration needs a [pw2wan] table")
-        use_ibrav = data.get("use_ibrav", False)
-        if not isinstance(use_ibrav, bool):
-            raise ConfigError(f"use_ibrav must be true or false, got {use_ibrav!r}")
+        flags = {}
+        for key in ("use_ibrav", "use_symwan"):
+            flags[key] = data.get(key, False)
+            if not isinstance(flags[key], bool):
+                raise ConfigError(f"{key} must be true or false, got {flags[key]!r}")
         try:
             return cls(
                 pseudo_dir=str(data["pseudo_dir"]),
@@ -124,7 +131,8 @@ class Config:
                 pw2wan=dict(pw2wan),
                 so=bool(so),
                 mag=bool(mag),
-                use_ibrav=use_ibrav,
+                use_ibrav=flags["use_ibrav"],
+                use_symwan=flags["use_symwan"],
             )
         except (TypeError, ValueError) as exc:
             raise ConfigError(f"invalid configuration value: {exc}") from exc

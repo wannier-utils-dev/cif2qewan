@@ -25,6 +25,7 @@ MPI_PREFIX="mpirun -n 16"  # Adjust number of processes as needed
 ESPRESSO_DIR=/path/to/espresso_dir      # Quantum ESPRESSO installation directory
 WANNIER90_DIR=/path/to/wannier90_dir     # Wannier90 installation directory
 TOML_FILE=/path/to/cif2qewan.toml        # Configuration file path
+USE_SYMWAN=0                              # 1 if use_symwan = true in the TOML file (symWannier installed)
 
 # =============================================================================
 # Step 1: Generate Input Files from CIF
@@ -56,6 +57,11 @@ echo "Running Wannier90 preprocessing..." &&
 $MPI_PREFIX $WANNIER90_DIR/wannier90.x -pp pwscf &&
 echo "Running pw2wannier90 interface..." &&
 $MPI_PREFIX $ESPRESSO_DIR/bin/pw2wannier90.x < pw2wan.in > pw2wan.out &&
+if [ "$USE_SYMWAN" = "1" ]; then
+  # irr_bz = .true.: expand Mmn, Amn and Eig from the irreducible k points
+  echo "Expanding the symWannier files to the full k mesh..." &&
+  symwannier expand pwscf
+fi &&
 echo "Cleaning up work directory..." &&
 rm -r work
 

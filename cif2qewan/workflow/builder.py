@@ -37,6 +37,12 @@ Bravais lattice (:mod:`cif2qewan.qe.bravais`); the &system namelist then
 carries ``ibrav`` and ``A``, ``B``, ``C``, ``cosAB``, ... and no
 ``CELL_PARAMETERS`` card, and the SCF mesh is derived from the new vectors
 (cif2cell's ``alat`` and mesh refer to its own vectors and are not used).
+
+symWannier (``use_symwan``): the Wannier90 NSCF run computes the irreducible
+k points only (no ``nosym``, ``K_POINTS {automatic}`` on the Wannier90 mesh)
+and ``pw2wan.in`` gets ``irr_bz = .true.``; ``symwannier expand`` then builds
+the full-mesh Mmn/Amn/Eig files. ``pwscf.win`` is unchanged. UNK files are
+not expanded by symWannier, so ``wannier_plot`` is switched off.
 """
 
 from __future__ import annotations
@@ -416,16 +422,19 @@ class WorkflowBuilder:
             relativistic=spin.scf_relativistic,
             kpoints=KPointsAutomatic(kmesh_scf),
         )
+        if config.use_symwan:
+            # symWannier: irreducible k points from the symmetry-reduced mesh
+            nscf_first: Dict = {"nbnd": counts.nbnd_nscf}
+            nscf_kpoints: KPoints = KPointsAutomatic(kmesh_nscf)
+        else:
+            nscf_first = {"nosym": True, "nbnd": counts.nbnd_nscf}
+            nscf_kpoints = mesh_kpoints_list(kmesh_nscf)
         nscf = pw_input(
             self._control("nscf"),
-            self._system(
-                base_system,
-                first={"nosym": True, "nbnd": counts.nbnd_nscf},
-                spin=spin.nscf(labels),
-            ),
+            self._system(base_system, first=nscf_first, spin=spin.nscf(labels)),
             CONV_THR_NSCF,
             relativistic=spin.nscf_relativistic,
-            kpoints=mesh_kpoints_list(kmesh_nscf),
+            kpoints=nscf_kpoints,
         )
         check_wannier = pw_input(
             self._control("nscf", verbosity="high"),
@@ -450,8 +459,18 @@ class WorkflowBuilder:
         wannier90_parameters = dict(WANNIER90_PARAMETERS)
         # wannier_plot reads UNK files written by pw2wannier90.x.  Keeping it
         # enabled while write_unk is false makes Wannier90 abort after the
-        # Hamiltonian and band files have otherwise been generated.
-        wannier90_parameters["wannier_plot"] = config.write_unk
+        # Hamiltonian and band files have otherwise been generated.  With
+        # irr_bz the UNK files cover the irreducible k points only and
+        # symWannier does not expand them, so the plot is off there as well.
+        wannier90_parameters["wannier_plot"] = (
+            config.write_unk and not config.use_symwan
+        )
+        if config.use_symwan and config.write_unk:
+            warnings.warn(
+                "use_symwan: pw2wannier90.x writes UNK files for the irreducible "
+                "k points only and symWannier does not expand them; wannier_plot "
+                "is disabled (set pw2wan.write_unk = false to skip the files)"
+            )
 
         wannier90 = Wannier90Input(
             num_wann=counts.num_wann_total,
@@ -618,6 +637,8 @@ class WorkflowBuilder:
             "seedname": SEEDNAME,
             "spin_component": "none",
         }
+        if self.config.use_symwan:
+            entries["irr_bz"] = True  # QE >= 7.3; expanded by symWannier
         if "wannier_plot_supercell" in options:
             entries["wannier_plot_supercell"] = RawValue(
                 str(options["wannier_plot_supercell"])

@@ -86,6 +86,9 @@ degauss = 0.01
 # Cell as QE's ibrav + A, B, C, ... instead of ibrav = 0 (default: false)
 # use_ibrav = true
 
+# Irreducible k points + irr_bz for symWannier (default: false)
+# use_symwan = true
+
 # pw2wannier90 configuration
 [pw2wan]
 write_unk = ".true."
@@ -118,9 +121,26 @@ The `cif2qewan.toml` file contains all necessary configuration parameters:
 | `pp_list_path` | Pseudopotential table: the file name of a bundled table, or a path | `"pp_psl_rrkj.csv"` |
 | `cif2cell_path` | cif2cell executable (default reader only) | `"cif2cell"` on PATH |
 | `use_ibrav` | Write the cell as QE's `ibrav` with `A`, `B`, `C`, `cosAB`, ... instead of `ibrav = 0` with `CELL_PARAMETERS` | `false` |
+| `use_symwan` | Prepare the Wannier90 NSCF run for symWannier (irreducible k points, `irr_bz = .true.`) | `false` |
 
 When `pw2wan.write_unk` is false, the generated `pwscf.win` also sets
 `wannier_plot = .false.` because Wannier-function plots require the UNK files.
+
+### symWannier (`use_symwan`)
+
+With `use_symwan = true` the Wannier90 NSCF run is set up for
+[symWannier](https://github.com/wannier-utils-dev/symWannier): `nscf.in` has
+no `nosym` and uses `K_POINTS {automatic}` on the Wannier90 mesh, so `pw.x`
+computes the irreducible k points only, and `pw2wan.in` gets
+`irr_bz = .true.` (Quantum ESPRESSO 7.3 or later), which writes
+`pwscf.immn`, `pwscf.iamn`, `pwscf.ieig` and `pwscf.isym`. Run
+`symwannier expand pwscf` after `pw2wannier90.x` to produce the full-mesh
+`pwscf.mmn`, `pwscf.amn` and `pwscf.eig`, then `wannier90.x pwscf` as usual
+(`submit_all.sh` has this step behind `USE_SYMWAN=1`); `pwscf.win` is the
+same as without symWannier. UNK files are written for the irreducible points
+only and are not expanded, so `wannier_plot` is disabled in `pwscf.win` and
+a warning is printed when `pw2wan.write_unk` is true. The `check_wannier`
+and `band` inputs are unchanged.
 
 ### Cell representation (`use_ibrav`)
 
