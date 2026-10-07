@@ -1,51 +1,22 @@
 # cif2qewan
 
-A comprehensive Python toolkit for generating Quantum ESPRESSO and Wannier90 input files from CIF (Crystallographic Information File) structures, with automated workflow management and band structure analysis capabilities.
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
-## Table of Contents
-
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Workflow](#workflow)
-- [Band Structure Analysis](#band-structure-analysis)
-- [Convergence Checking](#convergence-checking)
-- [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [References](#references)
-
-## Features
-
-- **Automated Input Generation**: Generate Quantum ESPRESSO and Wannier90 input files from CIF structures
-- **Band Structure Comparison**: Compare DFT and Wannier90 band structures with publication-ready plots
-- **Convergence Checking**: Automated Wannier90 convergence analysis
-- **Workflow Automation**: Complete end-to-end workflow from CIF to analysis
-- **Spin-Orbit Coupling Support**: Handle SOC calculations and magnetic systems
-- **Flexible Configuration**: TOML-based configuration system
+cif2qewan generates Quantum ESPRESSO and Wannier90 input files from a CIF (or
+MagCIF) structure: the SCF and NSCF runs, the pw2wannier90 and Wannier90
+inputs, and the inputs of a band-structure run and of a convergence check.
+Pseudopotentials, cutoffs, band counts, Wannier projections, k meshes and the
+band path are chosen from bundled tables for PSLibrary and PseudoDojo. Two
+scripts, `wannier_conv` and `band_comp`, compare the Wannier interpolation
+with the DFT bands.
 
 ## Installation
 
-### Prerequisites
-
-- Python 3.9 or higher
-- Quantum ESPRESSO (QE) and Wannier90 to run the generated inputs
-- cif2cell (optional): the default structure reader runs it;
-  `--reader pymatgen` reads the CIF without it
-
-### Software Dependencies
-
-1. **Quantum ESPRESSO**: [Download and install QE](https://www.quantum-espresso.org/)
-2. **Wannier90**: [Download and install Wannier90](https://github.com/wannier-developers/wannier90)
-3. **cif2cell** (optional): `pip install cif2cell`, or see
-   [cif2cell](https://sourceforge.net/projects/cif2cell/)
-
-### Installation
+Python 3.9 or later. Quantum ESPRESSO and Wannier90 are needed to run the
+generated inputs, not to generate them. The structure is read by cif2cell by
+default (optional: `pip install cif2cell`, or `--reader pymatgen` needs no
+external program).
 
 ```bash
 git clone https://github.com/wannier-utils-dev/cif2qewan.git
@@ -53,122 +24,92 @@ cd cif2qewan
 pip install .              # or: pip install '.[cif2cell]' to install cif2cell too
 ```
 
-This installs the Python dependencies, the `cif2qewan`, `band_comp` and
-`wannier_conv` commands, and the pseudopotential tables (`pp_psl_rrkj.csv`
-for PSLibrary and one table per PseudoDojo set, see
-[Pseudopotential Tables](#pseudopotential-tables)). The PSLibrary table is
-used by default; select another one by its file name with `pp_list_path`.
+This installs the Python dependencies (numpy, pymatgen, seekpath, spglib,
+matplotlib, toml), the commands `cif2qewan`, `wannier_conv` and `band_comp`,
+and the pseudopotential tables. Without installing, the commands can be run
+from a clone as `python -m cif2qewan.cli`, `python -m cif2qewan.wannier_conv`
+and `python -m cif2qewan.band_comp`.
 
-Without installing, the tools can also be run from a clone as
-`python -m cif2qewan.cli`, `python -m cif2qewan.band_comp` and
-`python -m cif2qewan.wannier_conv`.
-
-## Quick Start
-
-1. **Configure the system** by editing `cif2qewan.toml`:
-
-```toml
-# Directory containing pseudopotentials
-pseudo_dir = "/path/to/pseudopotentials"
-
-# Pseudopotential table; default: the bundled PSLibrary table
-# pp_list_path = "nc-sr-05_pbe_standard_upf.csv"
-
-# cif2cell executable; default: "cif2cell" on PATH
-# cif2cell_path = "/path/to/cif2cell"
-
-# K-point resolution for SCF (1/Å)
-scf_k_resolution = 0.15
-
-# Gaussian smearing (Ry)
-degauss = 0.01
-
-# Cell as QE's ibrav + A, B, C, ... instead of ibrav = 0 (default: false)
-# use_ibrav = true
-
-# Irreducible k points + irr_bz for symWannier (default: false)
-# use_symwan = true
-
-# pw2wannier90 configuration
-[pw2wan]
-write_unk = ".true."
-```
-
-2. **Run the complete workflow**:
+## Usage
 
 ```bash
-# Generate input files and run calculations
-./submit_all.sh
+cif2qewan structure.cif cif2qewan.toml [--so] [--mag] [--reader pymatgen] [-v]
+```
 
-# Or run step by step
-cif2qewan structure.cif cif2qewan.toml   # or: python -m cif2qewan.cli structure.cif cif2qewan.toml
-# ... run QE and Wannier90 calculations ...
-python -m cif2qewan.band_comp -o ./
+| Option | Description |
+|--------|-------------|
+| `--so` | Include spin-orbit coupling |
+| `--mag` | Ferromagnetic calculation (collinear SCF, noncollinear NSCF with `lforcet`) |
+| `--reader {cif2cell,pymatgen}` | `cif2cell` (default) runs cif2cell as in earlier versions; `pymatgen` reads the file directly (CIF, MagCIF and the other pymatgen formats) |
+| `--cif2cell-output FILE` | Reuse an existing cif2cell output (`cif_scf.in`) instead of running cif2cell |
+| `--output-dir DIR`, `-o DIR` | Write the inputs into `DIR` (default: the current directory) |
+| `-v`, `--verbose` | Report the decisions taken (pseudopotentials, cutoffs, band counts, k meshes, `ibrav`, the cif2cell command) |
+| `--version` | Print the version |
+
+cif2cell runs in a temporary directory and its output is saved as
+`cif_scf.in` next to the generated inputs; an existing `cif_scf.in` is not
+picked up unless given with `--cif2cell-output`. The pymatgen reader reduces
+the structure to its primitive cell (keeping the input cell when that would
+fold sites with different moments) and rejects partially occupied sites.
+Errors are reported as `cif2qewan: error: ...` with exit status 1. The 0.2.x
+entry point `python -m cif2qewan.cif2qewan` still works but is deprecated and
+will be removed in 0.4.0.
+
+Generated files: `scf.in`, `nscf.in`, `pw2wan.in`, `pwscf.win`,
+`check_wannier/nscf.in` (shifted k mesh for `wannier_conv`), `band/nscf.in`,
+`band/band.in`, `band/proj.in`, `band/pp.in`, and `cif_scf.in` on the
+cif2cell path. The reference outputs under `examples/` show them for bcc Fe
+without options, with `--so`, and with `--so --mag`.
+
+### Magnetic structures (MagCIF)
+
+With `--reader pymatgen` a MagCIF (`.mcif`) file is read including the site
+moments. Sites of one element with different moments become separate QE
+species (`Mn1`, `Mn2`, ...), and `starting_magnetization(i)`, `angle1(i)` and
+`angle2(i)` are set from the moments (relative to the largest one). A
+collinear order is run like `--mag` (collinear SCF, noncollinear NSCF with
+`lforcet`), a noncollinear one is noncollinear from the SCF on; add `--so`
+for spin-orbit coupling. The Wannier functions are spinors in both cases.
+Moments in the file take precedence over `--mag`.
+
+```bash
+cif2qewan Mn3Sn.mcif cif2qewan.toml --so --reader pymatgen
 ```
 
 ## Configuration
 
-### TOML Configuration File
+```toml
+pseudo_dir = "/path/to/pseudopotentials"   # written into the QE inputs
+scf_k_resolution = 0.15                    # SCF k-point spacing (1/Å)
+degauss = 0.01                             # smearing width (Ry)
+# pp_list_path = "nc-sr-05_pbe_standard_upf.csv"   # default: pp_psl_rrkj.csv
+# cif2cell_path = "/path/to/cif2cell"              # default: cif2cell on PATH
+# use_ibrav = true                                 # default: false
+# use_symwan = true                                # default: false
 
-The `cif2qewan.toml` file contains all necessary configuration parameters:
+[pw2wan]
+write_unk = true                           # UNK files for Wannier-function plots
+```
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `pseudo_dir` | Directory containing pseudopotentials | Required |
-| `scf_k_resolution` | K-point resolution for SCF (1/Å) | Required (0.15 in the sample) |
-| `degauss` | Gaussian smearing (Ry) | Required (0.01 in the sample) |
-| `pw2wan.write_unk` | Write UNK files for Wannier90 | Required (".true." in the sample) |
-| `pp_list_path` | Pseudopotential table: the file name of a bundled table, or a path | `"pp_psl_rrkj.csv"` |
-| `cif2cell_path` | cif2cell executable (default reader only) | `"cif2cell"` on PATH |
-| `use_ibrav` | Write the cell as QE's `ibrav` with `A`, `B`, `C`, `cosAB`, ... instead of `ibrav = 0` with `CELL_PARAMETERS` | `false` |
-| `use_symwan` | Prepare the Wannier90 NSCF run for symWannier (irreducible k points, `irr_bz = .true.`) | `false` |
+| Key | Description | Default |
+|-----|-------------|---------|
+| `pseudo_dir` | Directory containing the pseudopotential files | required |
+| `scf_k_resolution` | k-point spacing of the SCF mesh in 1/Å (`round(|b_i| / resolution)`, cif2cell's rule) | required |
+| `degauss` | Gaussian smearing in Ry | required |
+| `pw2wan.write_unk` | Write UNK files (`true`/`false`, or `".true."`/`".false."`); when false, `wannier_plot` is switched off in `pwscf.win` | required |
+| `pw2wan.wannier_plot_supercell` | Copied into `pw2wan.in` | not written |
+| `pp_list_path` | Pseudopotential table: the file name of a bundled table, or a path | `pp_psl_rrkj.csv` |
+| `cif2cell_path` | cif2cell executable (cif2cell reader only) | `cif2cell` on PATH |
+| `use_ibrav` | Write the cell as QE's `ibrav` with `A`, `B`, `C`, `cosAB`, ... (see below) | `false` |
+| `use_symwan` | Prepare the Wannier90 NSCF run for symWannier (see below) | `false` |
 
-When `pw2wan.write_unk` is false, the generated `pwscf.win` also sets
-`wannier_plot = .false.` because Wannier-function plots require the UNK files.
+The NSCF (Wannier90) mesh is the SCF mesh clamped to 4..8 points per
+direction. The fixed settings (`nbnd`, `conv_thr`, `dis_num_iter`,
+`dis_froz_max = -200`, ...) are listed in `cif2qewan/workflow/builder.py`;
+`dis_froz_max` is meant to be set after the NSCF run (recommended:
+E_F + 1 eV to E_F + 3 eV), as `submit_all.sh` does.
 
-### symWannier (`use_symwan`)
-
-With `use_symwan = true` the Wannier90 NSCF run is set up for
-[symWannier](https://github.com/wannier-utils-dev/symWannier): `nscf.in` has
-no `nosym` and uses `K_POINTS {automatic}` on the Wannier90 mesh, so `pw.x`
-computes the irreducible k points only, and `pw2wan.in` gets
-`irr_bz = .true.` (Quantum ESPRESSO 7.3 or later), which writes
-`pwscf.immn`, `pwscf.iamn`, `pwscf.ieig` and `pwscf.isym`. Run
-`symwannier expand pwscf` after `pw2wannier90.x` to produce the full-mesh
-`pwscf.mmn`, `pwscf.amn` and `pwscf.eig`, then `wannier90.x pwscf` as usual
-(`submit_all.sh` has this step behind `USE_SYMWAN=1`); `pwscf.win` is the
-same as without symWannier. UNK files are written for the irreducible points
-only and are not expanded, so `wannier_plot` is disabled in `pwscf.win` and
-a warning is printed when `pw2wan.write_unk` is true. The `check_wannier`
-and `band` inputs are unchanged.
-
-### Cell representation (`use_ibrav`)
-
-By default the cell is written as `ibrav = 0` with the lattice vectors of the
-structure in `CELL_PARAMETERS {alat}`. With `use_ibrav = true` the inputs use
-QE's Bravais-lattice index instead, as mcif2qewan and cif2x do: the lattice
-type is determined with spglib from the space group of the structure and the
-`&system` namelist gets `ibrav` and the lattice parameters `A`, `B`, `C`,
-`cosAB`, `cosAC`, `cosBC` (in angstrom and as cosines), with no
-`CELL_PARAMETERS` card. `pw.x` then builds the lattice vectors itself, so the
-structure is re-expressed in exactly those vectors: the atoms get new
-fractional coordinates, the whole crystal (magnetic moments included) is
-rigidly rotated into QE's orientation, and `pwscf.win` uses the same vectors.
-The SCF k mesh is derived from the new vectors with `scf_k_resolution`
-(cif2cell's mesh belongs to its own vectors and is not used).
-
-The values written are `1`, `2`, `-3` (cubic P, F, I), `4` (hexagonal and
-trigonal P), `5` (rhombohedral, with the rhombohedral `A` and `cosAB`), `6`,
-`7` (tetragonal P, I), `8`, `9`, `91`, `10`, `11` (orthorhombic P, C, A, F,
-I), `-12`, `-13` (monoclinic P and C, unique axis b) and `14` (triclinic).
-They follow `Modules/latgen.f90` of Quantum ESPRESSO 7.x; the definition of
-`ibrav = -13` changed in QE 6.4.1, so the generated inputs need QE 6.4.1 or
-later. Moments that only break point symmetry (a ferromagnet, the kagome
-moments of Mn3Sn) leave the lattice type unchanged; a magnetic cell larger
-than the chemical primitive cell (an antiferromagnet) keeps its own, lower
-lattice type. `-v` reports the space group and the parameters chosen.
-
-### Pseudopotential Tables
+### Pseudopotential tables
 
 The tables installed with the package are selected by file name:
 
@@ -179,287 +120,118 @@ The tables installed with the package are selected by file name:
 | `nc-sr-04_pbe_standard_upf.csv`, `nc-sr-04_pbe_stringent_upf.csv` | PseudoDojo NC v0.4, PBE |
 | `nc-sr-04_pbesol_standard_upf.csv`, `nc-sr-04_pbesol_stringent_upf.csv` | PseudoDojo NC v0.4, PBEsol |
 
-The PseudoDojo tables are named after the archives on
-[pseudo-dojo.org](https://www.pseudo-dojo.org/) and list the files as
-`<element>_sr`: rename the scalar-relativistic files `X.upf` to `X_sr.UPF`
-and, for `--so`, the fully relativistic files of the matching `nc-fr-04` set
-to `X_fr.UPF` in `pseudo_dir` (v0.5 has no fully relativistic set; La and Lu
-have no fully relativistic file in the v0.4 standard sets). `ecutwfc` is
-twice the "high" cutoff hint of the set (Ha -> Ry) and `ecutrho` four times
-`ecutwfc`; `nexclude` counts the semicore bands below the projected shells.
-The hints are the same for v0.4 and v0.5 and for PBE and PBEsol, so the
-tables differ only where the valence configurations differ (I, Xe and Rn in
-the stringent sets). `tools/pseudodojo_table.py` regenerates a PseudoDojo
-table from the downloaded `upf` and `djrepo` archives and documents these
-rules.
+With `--so` the fully relativistic file is used: `.pbe` -> `.rel-pbe`
+(PSLibrary) and `_sr` -> `_fr` (PseudoDojo). The PseudoDojo tables are named
+after the archives on [pseudo-dojo.org](https://www.pseudo-dojo.org/) and
+list the files as `<element>_sr`, so rename `X.upf` of the scalar-relativistic
+set to `X_sr.UPF` and, for `--so`, `X.upf` of the matching `nc-fr-04` set to
+`X_fr.UPF` (v0.5 has no fully relativistic set; La and Lu have none in the
+v0.4 standard sets). Their `ecutwfc` is twice the "high" cutoff hint of the
+set (Ha -> Ry), `ecutrho` four times `ecutwfc`, and `nexclude` counts the
+semicore bands below the projected shells; `tools/pseudodojo_table.py`
+regenerates a table from the `upf` and `djrepo` archives.
 
-A `pp_list_path` with a directory part (`./my_table.csv`,
-`/path/to/table.csv`) is used as a path, so you can also write your own
-table with the following columns:
+A `pp_list_path` with a directory part is used as a path, so you can write
+your own table. Columns: `atom`, `pp_file_name` (without `.UPF`),
+`nexclude` (low-lying bands excluded from the Wannier fit), `orbitals`
+(projections, letters of `s`, `p`, `d`, `f`), `ecutwfc`, `ecutrho` (Ry); an
+empty `pp_file_name` marks an unsupported element.
 
 ```csv
 atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho
-Fe,Fe.pbe-n-rrkjus_psl.1.0.0.UPF,0,spd,40.0,200.0
-O,O.pbe-n-rrkjus_psl.1.0.0.UPF,0,sp,40.0,200.0
+Fe,Fe.pbe-spn-rrkjus_psl.0.2.1,4,spd,64.0,782.0
+O,O.pbe-n-rrkjus_psl.0.1,1,p,47.0,323.0
 ```
 
-## Usage
+### Cell representation (`use_ibrav`)
 
-### Basic Usage
+By default the cell is written as `ibrav = 0` with the lattice vectors in
+`CELL_PARAMETERS {alat}`. With `use_ibrav = true` the inputs use QE's
+Bravais-lattice index instead, as mcif2qewan and cif2x do: the lattice type
+is determined with spglib from the space group, the `&system` namelist gets
+`ibrav` and `A`, `B`, `C`, `cosAB`, `cosAC`, `cosBC`, and no
+`CELL_PARAMETERS` card is written. The structure is re-expressed in exactly
+the vectors `pw.x` builds from these parameters (new fractional coordinates,
+the crystal and its moments rigidly rotated), `pwscf.win` uses the same
+vectors, and the SCF mesh is derived from them. The values written are `1`,
+`2`, `-3`, `4`, `5`, `6`, `7`, `8`, `9`, `91`, `10`, `11`, `-12`, `-13` and
+`14`, as defined in QE 7.x (`ibrav = -13` changed in QE 6.4.1, so QE 6.4.1 or
+later is required). Moments that only break point symmetry leave the lattice
+type unchanged; a magnetic supercell (antiferromagnet) keeps its own lower
+lattice type.
 
-```bash
-# Generate input files from CIF
-cif2qewan structure.cif cif2qewan.toml
+### symWannier (`use_symwan`)
 
-# With spin-orbit coupling
-cif2qewan structure.cif cif2qewan.toml --so
-
-# With magnetic calculations
-cif2qewan structure.cif cif2qewan.toml --mag
-```
-
-### Command Line Options
-
-| Option | Description |
-|--------|-------------|
-| `--so` | Include spin-orbit coupling |
-| `--mag` | Perform magnetic calculations |
-| `--reader {cif2cell,pymatgen}` | How to read the structure. `cif2cell` (default) runs cif2cell as in earlier versions; `pymatgen` reads the CIF directly and needs no cif2cell |
-| `--cif2cell-output FILE` | Reuse an existing cif2cell output (`cif_scf.in`) instead of running cif2cell |
-| `--output-dir DIR` | Write the inputs into `DIR` (default: the current directory) |
-| `--version` | Print the version |
-
-cif2cell is run in a temporary directory and its output is saved as
-`cif_scf.in` next to the generated inputs. Unlike earlier versions, an
-existing `cif_scf.in` is not picked up automatically; pass it with
-`--cif2cell-output` if you want to reuse it. Errors are reported as
-`cif2qewan: error: ...` with exit status 1.
-
-The `pymatgen` reader accepts only fully occupied sites; mixed or partial
-occupancies are rejected because the generated QE inputs cannot represent them.
-
-### Magnetic structures (MagCIF)
-
-With `--reader pymatgen` a MagCIF (`.mcif`) file is read including the site
-moments. Sites of one element with different moments become separate QE
-species (`Mn1`, `Mn2`, ...), and `starting_magnetization(i)`, `angle1(i)` and
-`angle2(i)` are set from the moments (relative to the largest one). A
-collinear structure is run like `--mag` (collinear SCF, noncollinear NSCF
-with `lforcet`), a noncollinear one is noncollinear from the SCF on; add
-`--so` for spin-orbit coupling. The Wannier functions are spinors in both
-cases. Moments in the file take precedence over `--mag`.
-
-```bash
-cif2qewan Mn3Sn.mcif cif2qewan.toml --so --reader pymatgen
-```
-
-### Generated Files
-
-The script generates the following input files:
-
-- `cif_scf.in` - the cif2cell output (not written with `--reader pymatgen`)
-- `scf.in` - SCF calculation input
-- `nscf.in` - NSCF calculation input
-- `pw2wan.in` - pw2wannier90 interface input
-- `pwscf.win` - Wannier90 input
-- `band/` - Band structure calculation files (`nscf.in`, `band.in`, `proj.in`, `pp.in`)
-- `check_wannier/` - Convergence check files (`nscf.in`)
+With `use_symwan = true` the Wannier90 NSCF run is prepared for
+[symWannier](https://github.com/wannier-utils-dev/symWannier): `nscf.in` has
+no `nosym` and uses `K_POINTS {automatic}` on the Wannier90 mesh, so `pw.x`
+computes the irreducible k points only, and `pw2wan.in` gets
+`irr_bz = .true.` (QE 7.3 or later). Run `symwannier expand pwscf` after
+`pw2wannier90.x` to produce the full-mesh `pwscf.mmn`, `pwscf.amn` and
+`pwscf.eig`, then `wannier90.x pwscf` as usual; `pwscf.win` is unchanged.
+UNK files are written for the irreducible points only and are not expanded,
+so `wannier_plot` is switched off (with a warning when `write_unk` is true).
 
 ## Workflow
 
-### Complete Automated Workflow
+`submit_all.sh` runs the whole chain (set `ESPRESSO_DIR`, `WANNIER90_DIR`,
+`TOML_FILE`, `MPI_PREFIX` and, for symWannier, `USE_SYMWAN=1` at its top).
+Step by step:
 
 ```bash
-# Run the complete workflow
-./submit_all.sh
-```
-
-This script performs the following steps:
-
-1. **Generate input files** from CIF structure
-2. **Run SCF calculation** for ground state
-3. **Run NSCF calculation** for Wannier90
-4. **Run Wannier90 preprocessing** and interpolation
-5. **Check convergence** by comparing energies
-6. **Generate band structure** plots
-7. **Compare DFT and Wannier90** band structures
-
-### Manual Workflow
-
-```bash
-# Step 1: Generate input files
 cif2qewan structure.cif cif2qewan.toml
-
-# Step 2: Run SCF calculation
 mpirun -n 16 pw.x < scf.in > scf.out
-
-# Step 3: Run NSCF calculation
+cp -r work check_wannier/ && cp -r work band/
 mpirun -n 16 pw.x < nscf.in > nscf.out
-
-# Step 4: Run Wannier90 preprocessing
 wannier90.x -pp pwscf
-
-# Step 5: Run pw2wannier90 interface
-pw2wannier90.x < pw2wan.in > pw2wan.out
-
-# Step 6: Set frozen window and run Wannier90
-# Edit dis_froz_max in pwscf.win (recommended: EF + 1-3 eV)
+mpirun -n 16 pw2wannier90.x < pw2wan.in > pw2wan.out
+# symwannier expand pwscf                     # only with use_symwan = true
+# set dis_froz_max in pwscf.win (E_F + 1 eV; E_F from nscf.out)
 wannier90.x pwscf
 
-# Step 7: Check convergence
-cd check_wannier
-mpirun -n 16 pw.x < nscf.in > nscf.out
-cd ..
-wannier_conv -e 5.0 -o ./
+# convergence check: DFT vs Wannier energies on a shifted k mesh
+(cd check_wannier && mpirun -n 16 pw.x < nscf.in > nscf.out)
+wannier_conv -e 5.0 -o ./ -i ./check_wannier/nscf.out   # writes CONV_5.0
 
-# Step 8: Generate band structure
-cd band
-mpirun -n 16 pw.x < nscf.in > nscf.out
-mpirun -n 16 bands.x < band.in > band.out
-cd ..
-
-# Step 9: Compare band structures
-python -m cif2qewan.band_comp -o ./
+# band structure: DFT bands and the Wannier interpolation in one plot
+(cd band && mpirun -n 16 pw.x < nscf.in > nscf.out && mpirun -n 16 bands.x < band.in > band.out)
+band_comp -o ./                                          # band_compare.png / .eps
 ```
 
-## Band Structure Analysis
+`wannier_conv` prints the average and maximum difference between the DFT and
+the Wannier-interpolated energies up to `-e` eV above the Fermi level.
+`band_comp` reads `scf.out`, `pwscf.win`, `pwscf_band.dat` (Wannier90 with
+`bands_plot`) and `band/bands.out.gnu` (`bands.x`) from the current
+directory.
 
-### Generate Band Structure Plots
+## Python API
 
-```bash
-# Run band structure calculation
-cd band
-mpirun -n 16 pw.x < nscf.in > nscf.out
-mpirun -n 16 bands.x < band.in > band.out
-cd ..
+The command is a thin layer over a pipeline of typed models: a reader returns
+a `NormalizedStructure` (lattice in angstrom, fractional coordinates,
+Cartesian moments), `build_plan` turns it and a `Config` into a
+`CalculationPlan` holding every input as a model, and `render_plan` /
+`write_rendered` turn the plan into files.
 
-# Generate comparison plot
-python -m cif2qewan.band_comp -o ./
+```python
+from cif2qewan.config import Config
+from cif2qewan.structure.readers import Cif2cellReader, PymatgenReader
+from cif2qewan.workflow.builder import build_plan, plan_from_cif2cell_output
+from cif2qewan.workflow.render import render_plan
+from cif2qewan.workflow.output import write_rendered
+
+config = Config.from_toml("cif2qewan.toml", so=True, mag=True)
+
+output = Cif2cellReader(config.cif2cell_path, config.scf_k_resolution).run("Fe.cif")
+plan = plan_from_cif2cell_output(output, config)   # the cif2cell path
+plan = build_plan(PymatgenReader().read("Fe.cif"), config)   # the pymatgen path
+
+plan.nscf.system.entries["nbnd"], plan.wannier90.num_wann
+write_rendered(render_plan(plan), "run")           # {relative path: text} -> files
 ```
 
-### Output Files
-
-- `band_compare.png` - Band structure comparison plot (PNG format)
-- `band_compare.eps` - Band structure comparison plot (EPS format)
-
-The plot shows:
-- **Red lines**: DFT band structure
-- **Black lines**: Wannier90 interpolated band structure
-- **Vertical lines**: High-symmetry points
-- **Energy axis**: Relative to Fermi energy
-
-## Convergence Checking
-
-### Check Wannier90 Convergence
-
-```bash
-# Run convergence check
-wannier_conv -e 5.0 -o ./ -i ./check_wannier/nscf.out
-```
-
-### Convergence Metrics
-
-The script calculates two convergence metrics:
-
-1. **Average difference**: $\delta_{avg} = \sqrt{\frac{1}{N} \sum_{n,k} (E_{n,k}^{DFT} - E_{n,k}^{Wannier})^2}$
-
-2. **Maximum difference**: $\delta_{max} = \max_{n,k} |E_{n,k}^{DFT} - E_{n,k}^{Wannier}|$
-
-### Output Files
-
-- `CONV_5.0` - Convergence results for energy window up to 5 eV above Fermi level
-
-### Interpretation
-
-- **Good convergence**: $\delta_{avg} < 0.01$ eV
-- **Acceptable convergence**: $\delta_{avg} < 0.1$ eV
-- **Poor convergence**: $\delta_{avg} > 0.1$ eV
-
-## Examples
-
-### Example 1: Iron (Fe) Crystal
-
-```bash
-# Generate input files (see examples/PSLibrary/Fe*/ for the CIF file and
-# the reference outputs without options, with --so, and with --so --mag)
-cif2qewan mp-13_Fe.cif cif2qewan.toml --mag
-
-# Run calculations
-./submit_all.sh
-```
-
-### Example 2: Spin-Orbit Coupling
-
-```bash
-# Generate input with SOC
-cif2qewan structure.cif cif2qewan.toml --so
-
-# Run calculations
-./submit_all.sh
-```
-
-### Example 3: Custom Configuration
-
-```toml
-# cif2qewan.toml
-pseudo_dir = "/home/user/pseudopotentials"
-pp_list_path = "/home/user/pp_list.csv"
-cif2cell_path = "/usr/local/bin/cif2cell"
-scf_k_resolution = 0.20
-degauss = 0.02
-
-[pw2wan]
-write_unk = ".false."
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **cif2cell not found**
-   ```bash
-   pip install cif2cell          # puts the cif2cell command on PATH
-   # or set cif2cell_path in cif2qewan.toml, or use --reader pymatgen
-   ```
-
-2. **Pseudopotentials not found**
-   ```bash
-   # Check pseudo_dir path
-   # Ensure pseudopotential files exist
-   ```
-
-3. **Wannier90 convergence issues**
-   ```bash
-   # Adjust dis_froz_max in pwscf.win
-   # Check projection settings
-   # Increase k-point mesh density
-   ```
-
-4. **Memory issues**
-   ```bash
-   # Reduce number of MPI processes
-   # Use smaller k-point mesh
-   # Check available memory
-   ```
-
-### Debug Mode
-
-```bash
-# Run with verbose output
-cif2qewan structure.cif cif2qewan.toml --verbose
-
-# Check intermediate files
-ls -la work/
-ls -la check_wannier/
-ls -la band/
-```
-
-### Performance Optimization
-
-1. **Parallel execution**: Use appropriate number of MPI processes
-2. **Memory management**: Monitor memory usage during calculations
-3. **Disk space**: Ensure sufficient disk space for work directories
-4. **Network**: For cluster calculations, use fast interconnect
+`plan.files()` maps the file names to their models (`PwInput`,
+`NamelistInput`, `Wannier90Input`). Errors raised on purpose derive from
+`cif2qewan.exceptions.Cif2qewanError`.
 
 ## Contributing
 
@@ -468,60 +240,45 @@ and open the pull request against `develop`; CI runs the tests on Python 3.9
 and 3.12.
 
 ```bash
-git clone https://github.com/wannier-utils-dev/cif2qewan.git
-cd cif2qewan
 pip install -e '.[test]'
 pytest                                           # no QE, Wannier90 or cif2cell needed
 flake8 cif2qewan tests --select=E9,F63,F7,F82    # what CI checks
-black cif2qewan tests                            # formatting
+black cif2qewan tests
 ```
 
-The code follows PEP 8 with Black formatting, NumPy-style docstrings and type
-hints. The package is a pipeline reader -> workflow builder -> renderers ->
-output; the scientific choices (cutoffs, band counts, k meshes, spin
-settings) live in `cif2qewan/workflow/builder.py` only, and changing one
-changes the generated inputs. Such a change must be stated in the pull
-request together with the regenerated reference examples under `examples/`,
-which the tests compare byte for byte.
-
-### Reporting Issues
-
-Please report issues on our [GitHub Issues](https://github.com/wannier-utils-dev/cif2qewan/issues) page.
+The scientific choices (cutoffs, band counts, k meshes, spin settings) live
+in `cif2qewan/workflow/builder.py`; changing one changes the generated
+inputs, which the tests compare byte for byte with the reference examples
+under `examples/`. Such a change must be stated in the pull request together
+with the regenerated examples.
 
 ## References
 
-### Scientific Papers
+1. A. Sakai, S. Minami, T. Koretsune et al., *Iron-based binary ferromagnets
+   for transverse thermoelectric conversion*, Nature 581, 53-57 (2020),
+   [10.1038/s41586-020-2230-z](https://doi.org/10.1038/s41586-020-2230-z):
+   the anomalous Hall and Nernst conductivity database was generated with
+   cif2qewan.
+2. *Systematic first-principles study of the on-site spin-orbit coupling in
+   crystals*, Phys. Rev. B 102, 045109 (2020),
+   [10.1103/PhysRevB.102.045109](https://doi.org/10.1103/PhysRevB.102.045109):
+   the spin-orbit couplings were extracted from tight-binding models
+   generated with cif2qewan.
+3. T. Koretsune, *Construction of maximally-localized Wannier functions using
+   crystal symmetry*, Comput. Phys. Commun. 285, 108645 (2023),
+   [10.1016/j.cpc.2022.108645](https://doi.org/10.1016/j.cpc.2022.108645)
+   (symWannier).
 
-1. **Iron-based binary ferromagnets for transverse thermoelectric conversion**
-   - A. Sakai, S. Minami, T. Koretsune et al.
-   - Nature 581, 53-57 (2020)
-   - [DOI: 10.1038/s41586-020-2230-z](https://doi.org/10.1038/s41586-020-2230-z)
-   - *The database of anomalous Hall conductivity and anomalous Nernst conductivity is generated using cif2qewan.py.*
-
-2. **Systematic first-principles study of the on-site spin-orbit coupling in crystals**
-   - Phys. Rev. B 102, 045109 (2020)
-   - [DOI: 10.1103/PhysRevB.102.045109](https://doi.org/10.1103/PhysRevB.102.045109)
-   - *The spin-orbit couplings are extracted from the tight-binding models generated by cif2qewan.py.*
-
-### Software References
-
-- [Quantum ESPRESSO](https://www.quantum-espresso.org/)
-- [Wannier90](https://github.com/wannier-developers/wannier90)
-- [cif2cell](https://sourceforge.net/projects/cif2cell/)
-- [Materials Project](https://materialsproject.org/)
+Software: [Quantum ESPRESSO](https://www.quantum-espresso.org/),
+[Wannier90](https://github.com/wannier-developers/wannier90),
+[symWannier](https://github.com/wannier-utils-dev/symWannier),
+[cif2cell](https://sourceforge.net/projects/cif2cell/),
+[pymatgen](https://pymatgen.org/),
+[seekpath](https://github.com/giovannipizzi/seekpath),
+[spglib](https://spglib.readthedocs.io/),
+[PSLibrary](https://dalcorso.github.io/pslibrary/),
+[PseudoDojo](https://www.pseudo-dojo.org/).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Quantum ESPRESSO developers
-- Wannier90 developers
-- cif2cell developers
-- Materials Project team
-- pymatgen developers
-
----
-
-For more information, please visit our [GitHub repository](https://github.com/wannier-utils-dev/cif2qewan) or contact the maintainers.
+MIT, see [LICENSE](LICENSE).
