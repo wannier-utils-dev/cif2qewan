@@ -167,3 +167,5 @@ Thumbs.db
 # Internal development notes (not part of the repository)
 CLAUDE.md
 DEVELOPMENT_PLAN.md
+!tests/fixtures/
+!tests/fixtures/**

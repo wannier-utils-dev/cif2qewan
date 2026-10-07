@@ -309,6 +309,59 @@ def test_mn3sn_plan_is_noncollinear_from_the_scf(tmp_path):
     assert "Mn1:s,p,d\nMn2:s,p,d\nMn3:s,p,d\nSn:s,p\n" in files["pwscf.win"]
 
 
+def test_mn3sn_plan_with_use_ibrav_keeps_the_magnetic_order():
+    """use_ibrav rotates Mn3Sn into QE's hexagonal frame; the order survives."""
+    pytest.importorskip("spglib")
+    from cif2qewan.qe.bravais import qe_lattice
+
+    structure = PymatgenReader().read(MN3SN)
+    plain = build_plan(structure, psl_config(so=True))
+    data = {
+        "pseudo_dir": "/pp",
+        "pp_list_path": str(PACKAGE / "pp_psl_rrkj.csv"),
+        "scf_k_resolution": 0.15,
+        "degauss": 0.01,
+        "pw2wan": {"write_unk": ".true."},
+        "use_ibrav": True,
+    }
+    plan = build_plan(structure, Config.from_dict(data, so=True))
+
+    system = plan.scf.system.entries
+    assert system["ibrav"] == 4 and plan.scf.cell is None
+    assert np.array(plan.wannier90.unit_cell_cart) == pytest.approx(
+        qe_lattice(
+            4, {"A": float(system["A"].literal), "C": float(system["C"].literal)}
+        )
+    )
+    # the same species and the same noncollinear policy as without use_ibrav
+    assert [s.label for s in plan.scf.species] == ["Mn1", "Mn2", "Mn3", "Sn"]
+    assert [p.label for p in plan.scf.positions] == [
+        p.label for p in plain.scf.positions
+    ]
+    assert system["noncolin"] is True and system["lspinorb"] is True
+    for i in (1, 2, 3):
+        assert system[f"starting_magnetization({i})"] == RawValue("1.0000")
+        # the kagome moments stay in the plane perpendicular to the hexagonal axis
+        assert system[f"angle1({i})"] == RawValue("90.0000")
+    assert "angle1(4)" not in system
+
+    # the rigid rotation into QE's frame (here a twofold rotation about an
+    # in-plane axis) keeps the 120-degree kagome arrangement of the azimuths
+    def azimuth(plan_, i):
+        return float(plan_.scf.system.entries[f"angle2({i})"].literal)
+
+    for plan_ in (plain, plan):
+        pairs = {
+            (azimuth(plan_, i) - azimuth(plan_, j)) % 360.0
+            for i in (1, 2, 3)
+            for j in (1, 2, 3)
+            if i != j
+        }
+        assert pairs == {120.0, 240.0}
+    assert plan.nscf.system.entries["angle1(3)"] == RawValue("90.0000")
+    assert (plan.wannier90.num_wann, plan.wannier90.num_bands) == (124, 372)
+
+
 def test_afm_plan_is_collinear_scf_then_noncollinear_nscf():
     plan = build_plan(afm_fe(), psl_config(so=False))
     scf = plan.scf.system.entries
