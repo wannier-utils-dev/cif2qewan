@@ -197,6 +197,27 @@ def test_flags_must_be_booleans(tmp_path, key):
     assert f"{key} must be true or false" in result.stderr
 
 
+def test_use_ibrav_and_use_symwan_combine(tmp_path):
+    pytest.importorskip("seekpath")
+    pytest.importorskip("pymatgen")
+    pytest.importorskip("spglib")
+    shutil.copy(FE.reference / "cif_scf.in", tmp_path)
+    write_example_toml(FE, tmp_path, use_ibrav=True, use_symwan=True)
+    result = run_cli(
+        ["x.cif", "cif2qewan.toml", "--cif2cell-output", "cif_scf.in"], tmp_path
+    )
+    assert result.returncode == 0, result.stderr
+    nscf = (tmp_path / "nscf.in").read_text()
+    assert "\n  ibrav = -3\n  A = 2.8630400000\n" in nscf
+    assert "CELL_PARAMETERS" not in nscf and "nosym" not in nscf
+    assert "K_POINTS {automatic}\n8 8 8  0 0 0\n" in nscf
+    assert " irr_bz = .true.\n" in (tmp_path / "pw2wan.in").read_text()
+    assert (
+        "  -1.4315200    1.4315200    1.4315200\n"
+        in (tmp_path / "pwscf.win").read_text()
+    )
+
+
 def test_use_symwan_writes_irreducible_nscf_and_irr_bz(tmp_path):
     pytest.importorskip("seekpath")
     pytest.importorskip("pymatgen")

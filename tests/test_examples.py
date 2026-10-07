@@ -1,3 +1,6 @@
+import pathlib
+import re
+
 """Regression tests: regenerate the reference examples and compare them.
 
 The files under ``examples/`` are the reference output of cif2qewan. These
@@ -49,3 +52,36 @@ def test_nbnd_relations(generated):
     factor = case.spin_factor
     assert nbnd_of("nscf.in") == (nexclude + num_wann * 3) * factor
     assert nbnd_of("check_wannier/nscf.in") == (nexclude + int(num_wann * 1.5)) * factor
+
+
+# --------------------------------------------------------------------------
+# 0.2.0 outputs (tests/fixtures/v0.2.0): the generated inputs differ from the
+# 0.2.0 ones only in the K_POINTS spelling of scf.in and the layout of
+# pwscf.win; every other file is byte for byte the 0.2.0 output, which the
+# reference examples pin above.
+# --------------------------------------------------------------------------
+
+V020 = pathlib.Path(__file__).parent / "fixtures" / "v0.2.0"
+
+
+def _normalized(text):
+    """Lines with collapsed whitespace, without blank lines, sorted."""
+    return sorted(
+        re.sub(r"\s+", " ", line).strip() for line in text.splitlines() if line.strip()
+    )
+
+
+def test_scf_in_matches_0_2_0_up_to_the_kpoints_spelling(generated):
+    case, workdir = generated
+    old = (V020 / case.example / "scf.in").read_text()
+    new = (workdir / "scf.in").read_text()
+    assert "K_POINTS automatic\n" in old and "K_POINTS {automatic}\n" in new
+    assert old.replace("K_POINTS automatic\n", "K_POINTS {automatic}\n") == new
+
+
+def test_win_matches_0_2_0_up_to_layout(generated):
+    case, workdir = generated
+    old = (V020 / case.example / "pwscf.win").read_text()
+    new = (workdir / "pwscf.win").read_text()
+    assert old != new  # the layout did change ...
+    assert _normalized(old) == _normalized(new)  # ... and nothing else
