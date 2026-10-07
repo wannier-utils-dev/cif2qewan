@@ -32,6 +32,12 @@ degauss = 0.01
 # re-expressed in QE's lattice vectors.
 # use_ibrav = false
 
+# symWannier (https://github.com/wannier-utils-dev/symWannier): compute the
+# Wannier90 NSCF run on the irreducible k points only (no nosym, automatic
+# mesh) and write irr_bz = .true. in pw2wan.in (needs QE >= 7.3). Run
+# `symwannier expand pwscf` after pw2wannier90.x and before wannier90.x.
+# use_symwan = false
+
 # pw2wannier90 options
 [pw2wan]
 # Write the UNK files needed to plot Wannier functions (true / false)

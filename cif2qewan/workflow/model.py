@@ -54,11 +54,16 @@ class CalculationPlan:
 
         mesh = self.wannier90.mp_grid
         nscf_k = self.nscf.kpoints
-        if not isinstance(nscf_k, KPointsList) or nscf_k.num_points != len(
-            self.wannier90.kpoints
-        ):
+        if isinstance(nscf_k, KPointsList):
+            consistent = nscf_k.num_points == len(self.wannier90.kpoints)
+        elif isinstance(nscf_k, KPointsAutomatic):  # symWannier: irreducible points
+            consistent = nscf_k.mesh == mesh and nscf_k.shift == (0, 0, 0)
+        else:
+            consistent = False
+        if not consistent:
             raise InputModelError(
-                "nscf must list the same k points as the Wannier90 mp_grid"
+                "nscf must list the same k points as the Wannier90 mp_grid, or "
+                "use the unshifted automatic mesh for symWannier"
             )
         check_k = self.check_wannier.kpoints
         if not isinstance(check_k, KPointsAutomatic) or check_k.mesh != mesh:

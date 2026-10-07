@@ -462,7 +462,12 @@ def test_plan_checks_calculation_types_and_meshes():
         fe_plan(
             check_wannier=fe_pw_input("nscf", KPointsAutomatic((4, 4, 4), (1, 1, 1)))
         )
+    mesh = fe_plan().wannier90.mp_grid
     with pytest.raises(InputModelError, match="same k points"):
-        fe_plan(nscf=fe_pw_input("nscf", KPointsAutomatic((2, 2, 2))))
+        fe_plan(nscf=fe_pw_input("nscf", KPointsAutomatic(mesh, (1, 1, 1))))
+    with pytest.raises(InputModelError, match="same k points"):
+        fe_plan(nscf=fe_pw_input("nscf", KPointsAutomatic((3, 5, 7))))
+    # symWannier: the unshifted automatic mesh of the mp_grid is accepted
+    fe_plan(nscf=fe_pw_input("nscf", KPointsAutomatic(mesh)))
     with pytest.raises(InputModelError, match="K_POINTS path"):
         fe_plan(bands_nscf=fe_pw_input("bands"))

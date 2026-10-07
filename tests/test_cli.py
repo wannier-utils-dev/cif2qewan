@@ -189,11 +189,34 @@ def test_use_ibrav_writes_the_bravais_lattice(tmp_path, reader):
     assert cell == pytest.approx(expected, abs=1e-7)
 
 
-def test_use_ibrav_must_be_a_boolean(tmp_path):
-    write_example_toml(FE, tmp_path, use_ibrav="yes")
+@pytest.mark.parametrize("key", ["use_ibrav", "use_symwan"])
+def test_flags_must_be_booleans(tmp_path, key):
+    write_example_toml(FE, tmp_path, **{key: "yes"})
     result = run_cli(["x.cif", "cif2qewan.toml"], tmp_path)
     assert result.returncode == 1
-    assert "use_ibrav must be true or false" in result.stderr
+    assert f"{key} must be true or false" in result.stderr
+
+
+def test_use_symwan_writes_irreducible_nscf_and_irr_bz(tmp_path):
+    pytest.importorskip("seekpath")
+    pytest.importorskip("pymatgen")
+    shutil.copy(FE.reference / "cif_scf.in", tmp_path)
+    write_example_toml(FE, tmp_path, use_symwan=True)
+    result = run_cli(
+        ["x.cif", "cif2qewan.toml", "--so", "--mag", "--cif2cell-output", "cif_scf.in"],
+        tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "wannier_plot is disabled" in result.stderr
+    nscf = (tmp_path / "nscf.in").read_text()
+    assert "nosym" not in nscf
+    assert "K_POINTS {automatic}\n8 8 8  0 0 0\n" in nscf
+    assert " irr_bz = .true.\n" in (tmp_path / "pw2wan.in").read_text()
+    win = (tmp_path / "pwscf.win").read_text()
+    assert "wannier_plot = .false." in win and "mp_grid: 8 8 8" in win
+    # the other inputs are the same as without use_symwan
+    for name in ("scf.in", "check_wannier/nscf.in", "band/nscf.in"):
+        assert (tmp_path / name).read_text() == (FE.reference / name).read_text()
 
 
 def test_old_module_entry_point_still_works(tmp_path):

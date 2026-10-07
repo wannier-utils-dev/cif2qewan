@@ -448,6 +448,45 @@ def test_use_ibrav_plan_shares_the_qe_lattice():
     assert "CELL_PARAMETERS" not in text and "\n  ibrav = -3\n" in text
 
 
+def test_use_symwan_nscf_and_pw2wan():
+    """use_symwan: nscf on the irreducible points, irr_bz, no wannier_plot."""
+    data = toml.load(FE / "cif2qewan.toml")
+    data["use_symwan"] = True
+    config = Config.from_dict(data, so=True, mag=True)
+    output = Cif2cellReader.read_output(FE / "cif_scf.in")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        plan = build_plan(
+            output.structure, config, StructureHints.from_cif2cell(output)
+        )
+    assert any("wannier_plot is disabled" in str(w.message) for w in caught)
+    assert "nosym" not in plan.nscf.system.entries
+    assert plan.nscf.kpoints == KPointsAutomatic((8, 8, 8))
+    assert plan.wannier90.mp_grid == (8, 8, 8) and len(plan.wannier90.kpoints) == 512
+    assert plan.pw2wan.namelist("inputpp").entries["irr_bz"] is True
+    assert plan.wannier90.parameters["wannier_plot"] is False
+    assert "nosym = .true." not in render_plan(plan)["nscf.in"]
+    assert " irr_bz = .true.\n" in render_plan(plan)["pw2wan.in"]
+    # the plain plan is unchanged: nosym, listed k points, no irr_bz
+    plain = build_plan(
+        output.structure,
+        Config.from_dict(toml.load(FE / "cif2qewan.toml"), so=True, mag=True),
+        StructureHints.from_cif2cell(output),
+    )
+    assert plain.nscf.system.entries["nosym"] is True
+    assert "irr_bz" not in plain.pw2wan.namelist("inputpp").entries
+    # write_unk = false: no warning, wannier_plot off anyway
+    data["pw2wan"] = {"write_unk": False}
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        build_plan(
+            output.structure,
+            Config.from_dict(data),
+            StructureHints.from_cif2cell(output),
+        )
+    assert not any("wannier_plot" in str(w.message) for w in caught)
+
+
 def test_hints_must_match_the_structure():
     builder = WorkflowBuilder(example_config(EXAMPLE_CASES[1]))
     with pytest.raises(InputModelError, match="do not match"):

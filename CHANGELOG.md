@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- `use_symwan = true` in `cif2qewan.toml` prepares the Wannier90 NSCF run
+  for symWannier: `nscf.in` without `nosym` and with `K_POINTS {automatic}`
+  on the Wannier90 mesh (irreducible k points), `irr_bz = .true.` in
+  `pw2wan.in` (QE >= 7.3), `wannier_plot` off (UNK files are not expanded);
+  `submit_all.sh` runs `symwannier expand pwscf` with `USE_SYMWAN=1`.
 - PseudoDojo tables for the NC v0.4 sets: `nc-sr-04_pbe_standard_upf.csv`,
   `nc-sr-04_pbe_stringent_upf.csv`, `nc-sr-04_pbesol_standard_upf.csv` and
   `nc-sr-04_pbesol_stringent_upf.csv`, with the same rules as the v0.5
