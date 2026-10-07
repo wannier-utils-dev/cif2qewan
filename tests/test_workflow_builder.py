@@ -69,6 +69,10 @@ def test_config_from_the_example_toml():
 
 def test_bundled_tables_are_installed():
     assert bundled_tables() == (
+        "nc-sr-04_pbe_standard_upf.csv",
+        "nc-sr-04_pbe_stringent_upf.csv",
+        "nc-sr-04_pbesol_standard_upf.csv",
+        "nc-sr-04_pbesol_stringent_upf.csv",
         "nc-sr-05_pbe_standard_upf.csv",
         "nc-sr-05_pbe_stringent_upf.csv",
         "pp_psl_rrkj.csv",
@@ -77,7 +81,13 @@ def test_bundled_tables_are_installed():
     for name in bundled_tables():
         path = resolve_table_path(name)
         assert path.is_file()
-        assert "Fe" in PseudopotentialTable.from_csv(path)
+        table = PseudopotentialTable.from_csv(path)
+        assert "Fe" in table
+        if name.startswith("nc-sr"):
+            # the PseudoDojo tables share the naming and cutoff rules
+            fe = table.lookup("Fe")
+            assert fe.file_name == "Fe_sr.UPF" and fe.nexclude == 4
+            assert fe.ecutrho == 4 * fe.ecutwfc
 
 
 def test_pp_list_path_resolution(tmp_path):

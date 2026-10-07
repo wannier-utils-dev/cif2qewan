@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- PseudoDojo tables for the NC v0.4 sets: `nc-sr-04_pbe_standard_upf.csv`,
+  `nc-sr-04_pbe_stringent_upf.csv`, `nc-sr-04_pbesol_standard_upf.csv` and
+  `nc-sr-04_pbesol_stringent_upf.csv`, with the same rules as the v0.5
+  tables (`<element>_sr` file names, `ecutwfc` = 2 x the "high" hint,
+  `ecutrho` = 4 x `ecutwfc`, `nexclude`/`orbitals` carried over; I, Xe and
+  Rn of the stringent sets have fewer semicore shells than in v0.5).
+  `tools/pseudodojo_table.py` generates such a table from the `upf` and
+  `djrepo` archives and reproduces the bundled tables exactly.
 - `use_ibrav = true` in `cif2qewan.toml` writes the cell as QE's
   Bravais-lattice index `ibrav` with `A`, `B`, `C`, `cosAB`, `cosAC`, `cosBC`
   instead of `ibrav = 0` with `CELL_PARAMETERS`, as mcif2qewan and cif2x do

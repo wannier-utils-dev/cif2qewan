@@ -55,8 +55,8 @@ pip install .              # or: pip install '.[cif2cell]' to install cif2cell t
 
 This installs the Python dependencies, the `cif2qewan`, `band_comp` and
 `wannier_conv` commands, and the pseudopotential tables (`pp_psl_rrkj.csv`
-for PSLibrary, `nc-sr-05_pbe_standard_upf.csv` and
-`nc-sr-05_pbe_stringent_upf.csv` for PseudoDojo). The PSLibrary table is
+for PSLibrary and one table per PseudoDojo set, see
+[Pseudopotential Tables](#pseudopotential-tables)). The PSLibrary table is
 used by default; select another one by its file name with `pp_list_path`.
 
 Without installing, the tools can also be run from a clone as
@@ -150,11 +150,32 @@ lattice type. `-v` reports the space group and the parameters chosen.
 
 ### Pseudopotential Tables
 
-Three tables are installed with the package and selected by file name:
-`pp_psl_rrkj.csv` (PSLibrary, the default), `nc-sr-05_pbe_standard_upf.csv`
-and `nc-sr-05_pbe_stringent_upf.csv` (PseudoDojo). A `pp_list_path` with a
-directory part (`./my_table.csv`, `/path/to/table.csv`) is used as a path,
-so you can also write your own table with the following columns:
+The tables installed with the package are selected by file name:
+
+| Table | Pseudopotentials |
+|-------|------------------|
+| `pp_psl_rrkj.csv` (default) | PSLibrary ultrasoft (`rrkjus`), PBE |
+| `nc-sr-05_pbe_standard_upf.csv`, `nc-sr-05_pbe_stringent_upf.csv` | PseudoDojo NC v0.5, PBE |
+| `nc-sr-04_pbe_standard_upf.csv`, `nc-sr-04_pbe_stringent_upf.csv` | PseudoDojo NC v0.4, PBE |
+| `nc-sr-04_pbesol_standard_upf.csv`, `nc-sr-04_pbesol_stringent_upf.csv` | PseudoDojo NC v0.4, PBEsol |
+
+The PseudoDojo tables are named after the archives on
+[pseudo-dojo.org](https://www.pseudo-dojo.org/) and list the files as
+`<element>_sr`: rename the scalar-relativistic files `X.upf` to `X_sr.UPF`
+and, for `--so`, the fully relativistic files of the matching `nc-fr-04` set
+to `X_fr.UPF` in `pseudo_dir` (v0.5 has no fully relativistic set; La and Lu
+have no fully relativistic file in the v0.4 standard sets). `ecutwfc` is
+twice the "high" cutoff hint of the set (Ha -> Ry) and `ecutrho` four times
+`ecutwfc`; `nexclude` counts the semicore bands below the projected shells.
+The hints are the same for v0.4 and v0.5 and for PBE and PBEsol, so the
+tables differ only where the valence configurations differ (I, Xe and Rn in
+the stringent sets). `tools/pseudodojo_table.py` regenerates a PseudoDojo
+table from the downloaded `upf` and `djrepo` archives and documents these
+rules.
+
+A `pp_list_path` with a directory part (`./my_table.csv`,
+`/path/to/table.csv`) is used as a path, so you can also write your own
+table with the following columns:
 
 ```csv
 atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho
