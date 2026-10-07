@@ -181,6 +181,19 @@ class WannierCounts:
         return (self.nexclude + int(CHECK_BANDS_PER_WANN * self.num_wann)) * self.factor
 
 
+def format_magnetization(value: float) -> str:
+    """``starting_magnetization`` literal with six significant digits.
+
+    Moments divided by the valence charge can be small (1e-3 Bohr magneton
+    on a 25-electron pseudopotential is 4e-5), so a fixed number of decimals
+    would round them to zero and silently remove the magnetization.
+    """
+    text = f"{float(value):.6g}"
+    if "e" not in text and "." not in text:
+        text += ".0"
+    return text
+
+
 class SpinPolicy:
     """The &system spin settings of the SCF and NSCF runs.
 
@@ -279,7 +292,7 @@ class SpinPolicy:
     def _magnitudes(self, labels) -> Dict:
         return {
             f"starting_magnetization({i + 1})": RawValue(
-                f"{self.magnetization[label].starting_magnetization:.4f}"
+                format_magnetization(self.magnetization[label].starting_magnetization)
             )
             for i, label in enumerate(labels)
         }
