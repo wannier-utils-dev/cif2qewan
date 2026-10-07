@@ -15,5 +15,5 @@ wannier_conv
     Check the accuracy of the Wannier90 interpolation.
 """
 
-__version__ = "0.3.0rc1"
+__version__ = "0.3.0"
 __all__ = ["__version__"]
