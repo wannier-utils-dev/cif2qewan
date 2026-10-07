@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -133,15 +133,19 @@ class QEMagnetization:
 
 
 def qe_magnetization(
-    species: Sequence[MagneticSpecies], order: str, tol: float = MOMENT_TOLERANCE
+    species: Sequence[MagneticSpecies],
+    order: str,
+    tol: float = MOMENT_TOLERANCE,
+    valence_charges: Optional[Mapping[str, float]] = None,
 ) -> Dict[str, QEMagnetization]:
-    """QE starting moments per species label.
+    """QE starting moments per species label (Quantum ESPRESSO 7.3 or later).
 
     ``starting_magnetization`` is the moment in Bohr magneton (``0.0`` for
-    non-magnetic species). Quantum ESPRESSO 7.3 and later interpret the
-    values as moments in Bohr magneton as soon as one of them is 1 or larger
-    (they are divided by the valence charge of the species); older versions
-    clamp them to the fully polarized value, [-1, 1].
+    non-magnetic species): QE reads the values as moments as soon as one of
+    them is 1 or larger. When every moment is below 1 Bohr magneton QE reads
+    the values as polarization per valence electron instead, so the caller
+    passes ``valence_charges`` (species label -> valence charge of the
+    pseudopotential) and the values become ``moment / valence charge``.
 
     For a collinear order the sign gives the direction along the common axis
     and every species, magnetic or not, carries the angles of that axis (the
@@ -160,6 +164,11 @@ def qe_magnetization(
         first = next(s for s in species if not s.moment.is_zero(tol))
         axis = first.moment
 
+    def value(s: MagneticSpecies) -> float:
+        if valence_charges is None:
+            return s.moment.magnitude
+        return s.moment.magnitude / float(valence_charges[s.label])
+
     result = {}
     for s in species:
         if axis is not None:
@@ -172,10 +181,10 @@ def qe_magnetization(
                 if float(np.dot(axis.direction(), s.moment.direction())) >= 0.0
                 else -1.0
             )
-            result[s.label] = QEMagnetization(sign * s.moment.magnitude, angle1, angle2)
+            result[s.label] = QEMagnetization(sign * value(s), angle1, angle2)
         elif s.moment.is_zero(tol):
             result[s.label] = QEMagnetization(0.0, 0.0, 0.0)
         else:
             angle1, angle2 = s.moment.angles()
-            result[s.label] = QEMagnetization(s.moment.magnitude, angle1, angle2)
+            result[s.label] = QEMagnetization(value(s), angle1, angle2)
     return result

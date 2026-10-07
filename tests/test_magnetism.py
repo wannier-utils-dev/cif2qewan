@@ -180,6 +180,11 @@ def test_qe_magnetization_values():
     mag = qe_magnetization(species, NONCOLLINEAR)
     assert mag["Fe1"].starting_magnetization == pytest.approx(3.0)
     assert mag["Fe2"].starting_magnetization == pytest.approx(1.5)
+    scaled = qe_magnetization(
+        species, NONCOLLINEAR, valence_charges={"Fe1": 16.0, "Fe2": 8.0}
+    )
+    assert scaled["Fe1"].starting_magnetization == pytest.approx(3.0 / 16)
+    assert scaled["Fe2"].starting_magnetization == pytest.approx(1.5 / 8)
     assert (mag["Fe2"].angle1, mag["Fe2"].angle2) == pytest.approx((90.0, 0.0))
     assert mag["Sn"].is_zero and (mag["Sn"].angle1, mag["Sn"].angle2) == (0.0, 0.0)
 
@@ -426,22 +431,42 @@ def test_collinear_axis_is_written_for_a_nonmagnetic_first_species():
     assert "  angle1(1) = 90.0000\n" in render_plan(plan)["nscf.in"]
 
 
-def test_weak_moments_warn_about_the_qe_interpretation():
+def test_weak_moments_are_written_per_valence_electron(tmp_path):
+    """All moments below 1 mu_B: QE reads fractions, so divide by zval."""
+    from cif2qewan.exceptions import InputModelError
+
     weak = cubic(
         (
             AtomicSite("Fe", (0, 0, 0), MagneticMoment((0, 0, 0.4))),
             AtomicSite("Fe", (0.5, 0.5, 0.5), MagneticMoment((0, 0, -0.4))),
         )
     )
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        plan = build_plan(weak, psl_config(so=False))
-    assert any("below 1" in str(w.message) for w in caught)
-    assert plan.scf.system.entries["starting_magnetization(1)"] == RawValue("0.4000")
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        build_plan(afm_fe(), psl_config(so=False))
-    assert not any("below 1" in str(w.message) for w in caught)
+    plan = build_plan(weak, psl_config(so=False))
+    scf = plan.scf.system.entries
+    assert scf["starting_magnetization(1)"] == RawValue("0.0250")  # 0.4 / 16
+    assert scf["starting_magnetization(2)"] == RawValue("-0.0250")
+    # 1 mu_B or more on one species: everything in mu_B, no zval needed
+    assert build_plan(afm_fe(), psl_config(so=False)).scf.system.entries[
+        "starting_magnetization(1)"
+    ] == RawValue("2.2000")
+    # a table without zval cannot express moments below 1 mu_B
+    table = tmp_path / "table.csv"
+    table.write_text(
+        "atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho\n"
+        "Fe,Fe.pbe-spn-rrkjus_psl.0.2.1,4,spd,64.0,782.0\n"
+    )
+    data = {
+        "pseudo_dir": "/pp",
+        "pp_list_path": str(table),
+        "scf_k_resolution": 0.15,
+        "degauss": 0.01,
+        "pw2wan": {"write_unk": ".true."},
+    }
+    with pytest.raises(InputModelError, match="no zval"):
+        build_plan(weak, Config.from_dict(data))
+    assert build_plan(afm_fe(), Config.from_dict(data)).scf.system.entries[
+        "starting_magnetization(2)"
+    ] == RawValue("-2.2000")
 
 
 def test_structure_moments_take_precedence_over_mag_flag():

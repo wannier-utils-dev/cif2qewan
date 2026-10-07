@@ -29,7 +29,9 @@ def tool():
 def write_upf(path, element, z, core, valence):
     lines = [f"{n} {l} {f}" for n, l, f in core + valence]
     path.write_text(
-        '<UPF version="2.0.1">\n<PP_INFO>\n<PP_INPUTFILE>\n'
+        '<UPF version="2.0.1">\n'
+        f'<PP_HEADER z_valence="{sum(f for _, _, f in valence):.2f}"/>\n'
+        "<PP_INFO>\n<PP_INPUTFILE>\n"
         "# ATOM AND REFERENCE CONFIGURATION\n"
         "# atsym  z   nc   nv     iexc    psfile\n"
         f"{element} {z:.2f}    {len(core)}    {len(valence)}       4      upf\n"
@@ -76,8 +78,8 @@ def test_valence_configuration_and_rules(tmp_path, tool):
     )
     reference = tmp_path / "ref.csv"
     reference.write_text(
-        "atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho\n"
-        "Fe,Fe_sr,4,dsp,106.0,424.0\nI,I_sr,6,p,82.0,328.0\n"
+        "atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho,zval\n"
+        "Fe,Fe_sr,4,dsp,106.0,424.0,16\nI,I_sr,6,p,82.0,328.0,17\n"
     )
     # the new set drops the 3s shell of Fe and has no hints for I
     new_upf, new_djrepo = make_set(tmp_path, "new", fe_old[1:], {"Fe": 50.0})
@@ -108,6 +110,7 @@ def test_valence_configuration_and_rules(tmp_path, tool):
         "orbitals": "dsp",
         "ecutwfc": "100.0",
         "ecutrho": "400.0",
+        "zval": "14",
     }
     assert table["I"]["ecutwfc"] == "82.0" and table["I"]["nexclude"] == "6"
     assert table["Cu"] == {
@@ -117,6 +120,7 @@ def test_valence_configuration_and_rules(tmp_path, tool):
         "orbitals": "",
         "ecutwfc": "",
         "ecutrho": "",
+        "zval": "",
     }
     # --check against the file just written finds no differences
     assert (

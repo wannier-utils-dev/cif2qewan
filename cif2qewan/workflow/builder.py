@@ -24,12 +24,13 @@ Magnetism policy:
   (``nspin = 2``, scalar-relativistic pseudopotentials); from the NSCF on
   the run is noncollinear with ``lforcet = .true.`` and the moment along z,
   with the fully relativistic pseudopotentials when ``--so`` is also given.
-- Moments in the structure (MCIF): species are split by moment
-  (:mod:`cif2qewan.structure.magnetism`) and ``starting_magnetization`` is
-  the moment in Bohr magneton (QE >= 7.3 reads it as such once a value is
-  >= 1; older versions clamp to the fully polarized [-1, 1]; a warning is
-  issued when every moment is below 1 Bohr magneton, where QE reads the
-  values as polarization per valence electron). A collinear order follows
+- Moments in the structure (MCIF; Quantum ESPRESSO 7.3 or later): species
+  are split by moment (:mod:`cif2qewan.structure.magnetism`) and
+  ``starting_magnetization`` is the moment in Bohr magneton, which QE reads
+  as such once a value is >= 1. When every moment is below 1 Bohr magneton
+  QE reads the values as polarization per valence electron, so they are
+  divided by the valence charge (``zval`` of the table) and a table without
+  it is an error. A collinear order follows
   the two-step scheme above with the sign and the common axis of the
   moments, the axis angles being written for every species because
   ``lforcet`` rotates the density by the angles of atomic type 1; a
@@ -341,30 +342,30 @@ class WorkflowBuilder:
         order = magnetic_order(structure)
         if order != NONMAGNETIC:
             structure, magnetic_species = classify_magnetic_sites(structure)
-            magnetization = qe_magnetization(magnetic_species, order)
-            logger.info(
-                "%s magnetic order from the structure; species %s",
-                order,
-                ", ".join(f"{sp.label}({sp.count})" for sp in magnetic_species),
-            )
-            largest = max(sp.moment.magnitude for sp in magnetic_species)
-            if largest < 1.0:
-                warnings.warn(
-                    f"the largest moment of the structure is {largest:.3f} mu_B; "
-                    "Quantum ESPRESSO reads starting_magnetization values below 1 "
-                    "as the polarization per valence electron, not as moments in "
-                    "mu_B, so the initial magnetization will be larger than the "
-                    "moments of the structure"
-                )
         else:
-            magnetization = {}
-        spin = SpinPolicy(order, magnetization, so=config.so, mag=config.mag)
+            magnetic_species = []
 
         labels = self._species_labels(structure, hints)
         entries = {
             label: self.table.lookup(self._element_of(structure, label))
             for label in labels
         }
+
+        if order != NONMAGNETIC:
+            magnetization = qe_magnetization(
+                magnetic_species,
+                order,
+                valence_charges=self._valence_charges(magnetic_species, entries),
+            )
+            logger.info(
+                "%s magnetic order from the structure; species %s",
+                order,
+                ", ".join(f"{sp.label}({sp.count})" for sp in magnetic_species),
+            )
+        else:
+            magnetization = {}
+        spin = SpinPolicy(order, magnetization, so=config.so, mag=config.mag)
+
         masses = self._masses(structure, labels, hints)
         ecutwfc, ecutrho = self._cutoffs(entries.values())
         counts = self._counts(structure, entries, spin.spinor)
@@ -545,6 +546,37 @@ class WorkflowBuilder:
                     f"the sites {sorted(labels)}"
                 )
         return labels
+
+    @staticmethod
+    def _valence_charges(magnetic_species, entries) -> Optional[Dict[str, float]]:
+        """Valence charges per label when the moments need them, else None.
+
+        QE 7.3+ reads ``starting_magnetization`` as moments in Bohr magneton
+        once one value is >= 1; below that the values are polarizations per
+        valence electron, so moments below 1 Bohr magneton on every species
+        have to be divided by the valence charge (``zval`` of the table).
+        """
+        largest = max(sp.moment.magnitude for sp in magnetic_species)
+        if largest >= 1.0:
+            return None
+        charges: Dict[str, float] = {}
+        for sp in magnetic_species:
+            if sp.moment.is_zero():
+                continue
+            zval = entries[sp.label].zval
+            if zval is None:
+                raise InputModelError(
+                    f"the largest moment of the structure is {largest:.3f} mu_B, "
+                    "which Quantum ESPRESSO reads as polarization per valence "
+                    f"electron; the table has no zval (valence charge) for "
+                    f"{sp.element}, so starting_magnetization cannot be derived"
+                )
+            charges[sp.label] = float(zval)
+        logger.info(
+            "moments below 1 mu_B: starting_magnetization = moment / zval (%s)",
+            ", ".join(f"{k}:{v:g}" for k, v in charges.items()),
+        )
+        return charges
 
     @staticmethod
     def _element_of(structure: NormalizedStructure, label: str) -> str:

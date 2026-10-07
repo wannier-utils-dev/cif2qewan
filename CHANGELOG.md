@@ -7,13 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Fixed
-- MagCIF structures: `starting_magnetization(i)` is the moment in Bohr
-  magneton instead of the moment relative to the largest one. Quantum
-  ESPRESSO 7.3 and later read the values as moments once one of them is 1
-  or larger, so the relative values started every structure with at most
-  1 Bohr magneton on the largest species; older versions clamp to the fully
-  polarized value, as before. A warning is issued when every moment is
-  below 1 Bohr magneton (read as polarization per valence electron).
+- MagCIF structures: `starting_magnetization(i)` follows the convention of
+  Quantum ESPRESSO 7.3 and later (which the MagCIF inputs now assume): the
+  moment in Bohr magneton instead of the moment relative to the largest
+  one, which QE 7.3+ read as at most 1 Bohr magneton on the largest
+  species. When every moment is below 1 Bohr magneton QE reads the values
+  as polarization per valence electron, so they are divided by the valence
+  charge: the bundled tables gain a `zval` column (`z_valence` of the UPF
+  files, also written by `tools/pseudodojo_table.py`), and a custom table
+  without it is rejected in that case.
 - MagCIF structures with a collinear order: the axis angles are written
   for every species, including non-magnetic ones. `lforcet` rotates the
   collinear density by `angle1(1)` / `angle2(1)`, so a non-magnetic first

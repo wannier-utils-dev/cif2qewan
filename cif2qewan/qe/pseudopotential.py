@@ -1,9 +1,11 @@
 """The pseudopotential / projection table (``pp_psl_rrkj.csv`` and friends).
 
-Columns: ``atom, pp_file_name, nexclude, orbitals, ecutwfc, ecutrho``. An
-empty ``pp_file_name`` marks an element without a supported
-pseudopotential; empty ``nexclude``/``ecutwfc``/``ecutrho`` count as 0 and
-an empty ``orbitals`` as no projection.
+Columns: ``atom, pp_file_name, nexclude, orbitals, ecutwfc, ecutrho`` and
+the optional ``zval`` (valence charge of the pseudopotential, ``z_valence``
+in the UPF file; needed to start a magnetic calculation from moments below
+1 Bohr magneton). An empty ``pp_file_name`` marks an element without a
+supported pseudopotential; empty ``nexclude``/``ecutwfc``/``ecutrho`` count
+as 0, an empty ``orbitals`` as no projection and an empty ``zval`` as unknown.
 
 The tables shipped with the package (``pp_psl_rrkj.csv`` for PSLibrary and
 the ``nc-sr-0*_*_upf.csv`` tables for the PseudoDojo sets, generated with
@@ -63,8 +65,11 @@ class PseudopotentialEntry:
     orbitals: str
     ecutwfc: float
     ecutrho: float
+    zval: Optional[float] = None
 
     def __post_init__(self) -> None:
+        if self.zval is not None and not (float(self.zval) > 0.0):
+            raise PseudopotentialError(f"{self.element}: zval must be positive")
         for letter in self.orbitals:
             if letter not in ORBITAL_SIZES:
                 raise PseudopotentialError(
@@ -135,6 +140,11 @@ class PseudopotentialTable:
                         orbitals=(row["orbitals"] or "").strip(),
                         ecutwfc=float(row["ecutwfc"] or 0.0),
                         ecutrho=float(row["ecutrho"] or 0.0),
+                        zval=(
+                            float(row["zval"])
+                            if (row.get("zval") or "").strip()
+                            else None
+                        ),
                     )
                 except ValueError as exc:
                     raise PseudopotentialError(

@@ -65,16 +65,19 @@ without options, with `--so`, and with `--so --mag`.
 
 With `--reader pymatgen` a MagCIF (`.mcif`) file is read including the site
 moments. Sites of one element with different moments become separate QE
-species (`Mn1`, `Mn2`, ...), and `starting_magnetization(i)` (the moment in
-Bohr magneton, as Quantum ESPRESSO 7.3 and later read it; older versions
-clamp it to the fully polarized value), `angle1(i)` and `angle2(i)` are set
-from the moments. A collinear order is run like `--mag` (collinear SCF,
-noncollinear NSCF with `lforcet`, the axis angles written for every species
-because `lforcet` uses those of atomic type 1), a noncollinear one is
-noncollinear from the SCF on; add `--so` for spin-orbit coupling. The
-Wannier functions are spinors in both cases. Moments in the file take
-precedence over `--mag`. When every moment is below 1 Bohr magneton, QE
-reads the values as polarization per valence electron and cif2qewan warns.
+species (`Mn1`, `Mn2`, ...), and `starting_magnetization(i)`, `angle1(i)`
+and `angle2(i)` are set from the moments. The inputs follow the
+`starting_magnetization` convention of Quantum ESPRESSO 7.3 and later: the
+values are the moments in Bohr magneton (QE reads them as such once one of
+them is 1 or larger); when every moment is below 1 Bohr magneton, QE reads
+the values as polarization per valence electron, so they are divided by the
+valence charge of the pseudopotential (the `zval` column of the table; a
+table without it cannot be used in that case). A collinear order is run
+like `--mag` (collinear SCF, noncollinear NSCF with `lforcet`, the axis
+angles written for every species because `lforcet` uses those of atomic
+type 1), a noncollinear one is noncollinear from the SCF on; add `--so` for
+spin-orbit coupling. The Wannier functions are spinors in both cases.
+Moments in the file take precedence over `--mag`.
 
 ```bash
 cif2qewan Mn3Sn.mcif cif2qewan.toml --so --reader pymatgen
@@ -138,13 +141,15 @@ regenerates a table from the `upf` and `djrepo` archives.
 A `pp_list_path` with a directory part is used as a path, so you can write
 your own table. Columns: `atom`, `pp_file_name` (without `.UPF`),
 `nexclude` (low-lying bands excluded from the Wannier fit), `orbitals`
-(projections, letters of `s`, `p`, `d`, `f`), `ecutwfc`, `ecutrho` (Ry); an
+(projections, letters of `s`, `p`, `d`, `f`), `ecutwfc`, `ecutrho` (Ry) and
+the optional `zval` (valence charge, `z_valence` of the UPF file; needed
+only for MagCIF structures whose moments are all below 1 Bohr magneton); an
 empty `pp_file_name` marks an unsupported element.
 
 ```csv
-atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho
-Fe,Fe.pbe-spn-rrkjus_psl.0.2.1,4,spd,64.0,782.0
-O,O.pbe-n-rrkjus_psl.0.1,1,p,47.0,323.0
+atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho,zval
+Fe,Fe.pbe-spn-rrkjus_psl.0.2.1,4,spd,64.0,782.0,16
+O,O.pbe-n-rrkjus_psl.0.1,1,p,47.0,323.0,6
 ```
 
 ### Cell representation (`use_ibrav`)

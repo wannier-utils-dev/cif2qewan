@@ -148,7 +148,7 @@ def test_table_lookup_and_relativistic_names():
     table = PseudopotentialTable.from_csv(PSL)
     fe = table.lookup("Fe")
     assert fe == PseudopotentialEntry(
-        "Fe", "Fe.pbe-spn-rrkjus_psl.0.2.1.UPF", 4, "spd", 64.0, 782.0
+        "Fe", "Fe.pbe-spn-rrkjus_psl.0.2.1.UPF", 4, "spd", 64.0, 782.0, zval=16.0
     )
     assert fe.num_wann == 9
     assert fe.projection_orbitals == ("s", "p", "d")
@@ -159,6 +159,26 @@ def test_table_lookup_and_relativistic_names():
     dojo = PseudopotentialTable.from_csv(PACKAGE / "nc-sr-05_pbe_standard_upf.csv")
     assert dojo.lookup("Fe").pseudo_file(relativistic=True) == "Fe_fr.UPF"
     assert dojo.lookup("He").num_wann == 0  # empty orbitals: no projection
+
+
+def test_table_zval_is_optional(tmp_path):
+    table = PseudopotentialTable.from_csv(PSL)
+    assert table.lookup("Fe").zval == 16.0 and table.lookup("O").zval == 6.0
+    for name in bundled_tables():
+        bundled = PseudopotentialTable.from_csv(resolve_table_path(name))
+        assert bundled.lookup("Fe").zval == 16.0
+    path = tmp_path / "table.csv"
+    path.write_text(
+        "atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho\n"
+        "Fe,Fe.pbe,4,spd,60.0,240.0\n"
+    )
+    assert PseudopotentialTable.from_csv(path).lookup("Fe").zval is None
+    path.write_text(
+        "atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho,zval\n"
+        "Fe,Fe.pbe,4,spd,60.0,240.0,\nO,O.pbe,1,p,60.0,240.0,-6\n"
+    )
+    with pytest.raises(PseudopotentialError, match="zval"):
+        PseudopotentialTable.from_csv(path)
 
 
 def test_table_errors(tmp_path):
