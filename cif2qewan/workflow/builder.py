@@ -24,10 +24,16 @@ Magnetism policy:
   (``nspin = 2``, scalar-relativistic pseudopotentials); from the NSCF on
   the run is noncollinear with ``lforcet = .true.`` and the moment along z,
   with the fully relativistic pseudopotentials when ``--so`` is also given.
-- Moments in the structure (MCIF): species are split by moment
-  (:mod:`cif2qewan.structure.magnetism`) and ``starting_magnetization`` is
-  the moment relative to the largest one. A collinear order follows the
-  two-step scheme above with the sign and the common axis of the moments; a
+- Moments in the structure (MCIF; Quantum ESPRESSO 7.3 or later): species
+  are split by moment (:mod:`cif2qewan.structure.magnetism`) and
+  ``starting_magnetization`` is the moment in Bohr magneton, which QE reads
+  as such once a value is >= 1. When every moment is below 1 Bohr magneton
+  QE reads the values as polarization per valence electron, so they are
+  divided by the valence charge (``zval`` of the table) and a table without
+  it is an error. A collinear order follows
+  the two-step scheme above with the sign and the common axis of the
+  moments, the axis angles being written for every species because
+  ``lforcet`` rotates the density by the angles of atomic type 1; a
   noncollinear order is run noncollinear from the SCF on with ``angle1`` /
   ``angle2`` per species. Either way the Wannier functions are spinors.
 
@@ -175,6 +181,19 @@ class WannierCounts:
         return (self.nexclude + int(CHECK_BANDS_PER_WANN * self.num_wann)) * self.factor
 
 
+def format_magnetization(value: float) -> str:
+    """``starting_magnetization`` literal with six significant digits.
+
+    Moments divided by the valence charge can be small (1e-3 Bohr magneton
+    on a 25-electron pseudopotential is 4e-5), so a fixed number of decimals
+    would round them to zero and silently remove the magnetization.
+    """
+    text = f"{float(value):.6g}"
+    if "e" not in text and "." not in text:
+        text += ".0"
+    return text
+
+
 class SpinPolicy:
     """The &system spin settings of the SCF and NSCF runs.
 
@@ -273,16 +292,22 @@ class SpinPolicy:
     def _magnitudes(self, labels) -> Dict:
         return {
             f"starting_magnetization({i + 1})": RawValue(
-                f"{self.magnetization[label].starting_magnetization:.4f}"
+                format_magnetization(self.magnetization[label].starting_magnetization)
             )
             for i, label in enumerate(labels)
         }
 
     def _angles(self, labels) -> Dict:
+        """``angle1(i)`` / ``angle2(i)`` of the magnetic species.
+
+        For a collinear order every species gets the angles of the common
+        axis: ``lforcet`` rotates the collinear density by the angles of
+        atomic type 1, which may be a non-magnetic species.
+        """
         angles: Dict = {}
         for i, label in enumerate(labels):
             m = self.magnetization[label]
-            if m.is_zero:
+            if m.is_zero and self.order != COLLINEAR:
                 continue
             angles[f"angle1({i + 1})"] = RawValue(f"{m.angle1:.4f}")
             angles[f"angle2({i + 1})"] = RawValue(f"{m.angle2:.4f}")
@@ -330,7 +355,21 @@ class WorkflowBuilder:
         order = magnetic_order(structure)
         if order != NONMAGNETIC:
             structure, magnetic_species = classify_magnetic_sites(structure)
-            magnetization = qe_magnetization(magnetic_species, order)
+        else:
+            magnetic_species = []
+
+        labels = self._species_labels(structure, hints)
+        entries = {
+            label: self.table.lookup(self._element_of(structure, label))
+            for label in labels
+        }
+
+        if order != NONMAGNETIC:
+            magnetization = qe_magnetization(
+                magnetic_species,
+                order,
+                valence_charges=self._valence_charges(magnetic_species, entries),
+            )
             logger.info(
                 "%s magnetic order from the structure; species %s",
                 order,
@@ -340,11 +379,6 @@ class WorkflowBuilder:
             magnetization = {}
         spin = SpinPolicy(order, magnetization, so=config.so, mag=config.mag)
 
-        labels = self._species_labels(structure, hints)
-        entries = {
-            label: self.table.lookup(self._element_of(structure, label))
-            for label in labels
-        }
         masses = self._masses(structure, labels, hints)
         ecutwfc, ecutrho = self._cutoffs(entries.values())
         counts = self._counts(structure, entries, spin.spinor)
@@ -525,6 +559,37 @@ class WorkflowBuilder:
                     f"the sites {sorted(labels)}"
                 )
         return labels
+
+    @staticmethod
+    def _valence_charges(magnetic_species, entries) -> Optional[Dict[str, float]]:
+        """Valence charges per label when the moments need them, else None.
+
+        QE 7.3+ reads ``starting_magnetization`` as moments in Bohr magneton
+        once one value is >= 1; below that the values are polarizations per
+        valence electron, so moments below 1 Bohr magneton on every species
+        have to be divided by the valence charge (``zval`` of the table).
+        """
+        largest = max(sp.moment.magnitude for sp in magnetic_species)
+        if largest >= 1.0:
+            return None
+        charges: Dict[str, float] = {}
+        for sp in magnetic_species:
+            if sp.moment.is_zero():
+                continue
+            zval = entries[sp.label].zval
+            if zval is None:
+                raise InputModelError(
+                    f"the largest moment of the structure is {largest:.3f} mu_B, "
+                    "which Quantum ESPRESSO reads as polarization per valence "
+                    f"electron; the table has no zval (valence charge) for "
+                    f"{sp.element}, so starting_magnetization cannot be derived"
+                )
+            charges[sp.label] = float(zval)
+        logger.info(
+            "moments below 1 mu_B: starting_magnetization = moment / zval (%s)",
+            ", ".join(f"{k}:{v:g}" for k, v in charges.items()),
+        )
+        return charges
 
     @staticmethod
     def _element_of(structure: NormalizedStructure, label: str) -> str:

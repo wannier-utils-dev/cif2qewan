@@ -11,6 +11,7 @@ reproducible:
 - ``ecutwfc`` is twice the "high" hint of the ``.djrepo`` file (hartree ->
   rydberg) and ``ecutrho`` is four times ``ecutwfc``; elements whose
   ``.djrepo`` has no hints take them from a fallback set (``--fallback-djrepo``);
+- ``zval`` is ``z_valence`` of the UPF file;
 - ``nexclude`` and ``orbitals`` are the choices of a reference table (one of
   the bundled tables) for the same element. When the valence configuration
   of the new pseudopotential differs from the reference's (compared through
@@ -41,7 +42,7 @@ from typing import Dict, List, Optional, Tuple
 
 from cif2qewan.structure.model import ELEMENTS
 
-COLUMNS = ("atom", "pp_file_name", "nexclude", "orbitals", "ecutwfc", "ecutrho")
+COLUMNS = ("atom", "pp_file_name", "nexclude", "orbitals", "ecutwfc", "ecutrho", "zval")
 ANGULAR = {0: "s", 1: "p", 2: "d", 3: "f"}
 HARTREE_TO_RYDBERG = 2.0
 ECUTRHO_FACTOR = 4.0
@@ -64,6 +65,14 @@ def valence_configuration(upf: Path) -> Tuple[Shell, ...]:
     if len(rows) != n_core + n_valence:
         raise ValueError(f"{upf}: expected {n_core + n_valence} configuration rows")
     return tuple((int(n), ANGULAR[int(l)]) for n, l, _ in rows[n_core:])
+
+
+def valence_charge(upf: Path) -> Optional[float]:
+    """``z_valence`` of the UPF header, or None if it is not found."""
+    match = re.search(
+        r'z_valence\s*=\s*"?\s*([\d.Ee+-]+)', upf.read_text(errors="replace")
+    )
+    return float(match.group(1)) if match else None
 
 
 def bands(shell: Shell) -> int:
@@ -111,6 +120,14 @@ def build_rows(args: argparse.Namespace, notes: List[str]) -> List[Dict[str, str
         upf = args.upf / f"{element}.upf"
         if not upf.is_file():
             continue
+
+        zval = valence_charge(upf)
+        if zval is None:
+            notes.append(
+                f"WARNING {element}: no z_valence in {upf.name}; zval left empty"
+            )
+        else:
+            row["zval"] = f"{zval:g}"
 
         ecutwfc, source = cutoffs(element, djrepo_dirs)
         if ecutwfc is None:

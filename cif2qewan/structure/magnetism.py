@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -133,15 +133,26 @@ class QEMagnetization:
 
 
 def qe_magnetization(
-    species: Sequence[MagneticSpecies], order: str, tol: float = MOMENT_TOLERANCE
+    species: Sequence[MagneticSpecies],
+    order: str,
+    tol: float = MOMENT_TOLERANCE,
+    valence_charges: Optional[Mapping[str, float]] = None,
 ) -> Dict[str, QEMagnetization]:
-    """QE starting moments per species label.
+    """QE starting moments per species label (Quantum ESPRESSO 7.3 or later).
 
-    The magnitude is relative to the largest moment (``1.0`` for the largest
-    species, ``0.0`` for non-magnetic ones). For a collinear order the sign
-    gives the direction along the common axis and the angles are those of
-    the axis (the direction of the first magnetic species); for a
-    noncollinear order every species carries its own polar angles.
+    ``starting_magnetization`` is the moment in Bohr magneton (``0.0`` for
+    non-magnetic species): QE reads the values as moments as soon as one of
+    them is 1 or larger. When every moment is below 1 Bohr magneton QE reads
+    the values as polarization per valence electron instead, so the caller
+    passes ``valence_charges`` (species label -> valence charge of the
+    pseudopotential) and the values become ``moment / valence charge``.
+
+    For a collinear order the sign gives the direction along the common axis
+    and every species, magnetic or not, carries the angles of that axis (the
+    direction of the first magnetic species): ``lforcet`` rotates the
+    collinear density by the angles of atomic type 1, whatever its moment.
+    For a noncollinear order every species carries its own polar angles and
+    non-magnetic species carry none.
     """
     magnitudes = [s.moment.magnitude for s in species]
     largest = max(magnitudes) if magnitudes else 0.0
@@ -153,21 +164,27 @@ def qe_magnetization(
         first = next(s for s in species if not s.moment.is_zero(tol))
         axis = first.moment
 
+    def value(s: MagneticSpecies) -> float:
+        if valence_charges is None:
+            return s.moment.magnitude
+        return s.moment.magnitude / float(valence_charges[s.label])
+
     result = {}
     for s in species:
-        if s.moment.is_zero(tol):
-            result[s.label] = QEMagnetization(0.0, 0.0, 0.0)
-            continue
-        relative = s.moment.magnitude / largest
         if axis is not None:
+            angle1, angle2 = axis.angles()
+            if s.moment.is_zero(tol):
+                result[s.label] = QEMagnetization(0.0, angle1, angle2)
+                continue
             sign = (
                 1.0
                 if float(np.dot(axis.direction(), s.moment.direction())) >= 0.0
                 else -1.0
             )
-            angle1, angle2 = axis.angles()
-            result[s.label] = QEMagnetization(sign * relative, angle1, angle2)
+            result[s.label] = QEMagnetization(sign * value(s), angle1, angle2)
+        elif s.moment.is_zero(tol):
+            result[s.label] = QEMagnetization(0.0, 0.0, 0.0)
         else:
             angle1, angle2 = s.moment.angles()
-            result[s.label] = QEMagnetization(relative, angle1, angle2)
+            result[s.label] = QEMagnetization(value(s), angle1, angle2)
     return result

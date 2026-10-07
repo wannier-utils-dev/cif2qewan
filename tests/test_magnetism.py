@@ -9,6 +9,7 @@ Wannier90 inputs for a noncollinear (Mn3Sn) and a collinear
 
 import re
 import shutil
+import warnings
 import subprocess
 import sys
 
@@ -160,8 +161,8 @@ def test_classification_rejects_label_clashes():
 def test_qe_magnetization_values():
     _, species = classify_magnetic_sites(afm_fe())
     mag = qe_magnetization(species, COLLINEAR)
-    assert mag["Fe1"].starting_magnetization == pytest.approx(1.0)
-    assert mag["Fe2"].starting_magnetization == pytest.approx(-1.0)
+    assert mag["Fe1"].starting_magnetization == pytest.approx(2.2)  # mu_B
+    assert mag["Fe2"].starting_magnetization == pytest.approx(-2.2)
     assert (mag["Fe1"].angle1, mag["Fe1"].angle2) == (0.0, 0.0)
     assert (mag["Fe2"].angle1, mag["Fe2"].angle2) == (
         0.0,
@@ -177,10 +178,29 @@ def test_qe_magnetization_values():
     )
     _, species = classify_magnetic_sites(canted)
     mag = qe_magnetization(species, NONCOLLINEAR)
-    assert mag["Fe1"].starting_magnetization == pytest.approx(1.0)
-    assert mag["Fe2"].starting_magnetization == pytest.approx(0.5)
+    assert mag["Fe1"].starting_magnetization == pytest.approx(3.0)
+    assert mag["Fe2"].starting_magnetization == pytest.approx(1.5)
+    scaled = qe_magnetization(
+        species, NONCOLLINEAR, valence_charges={"Fe1": 16.0, "Fe2": 8.0}
+    )
+    assert scaled["Fe1"].starting_magnetization == pytest.approx(3.0 / 16)
+    assert scaled["Fe2"].starting_magnetization == pytest.approx(1.5 / 8)
     assert (mag["Fe2"].angle1, mag["Fe2"].angle2) == pytest.approx((90.0, 0.0))
     assert mag["Sn"].is_zero and (mag["Sn"].angle1, mag["Sn"].angle2) == (0.0, 0.0)
+
+    # collinear along x with a non-magnetic species: it carries the axis angles
+    collinear_x = cubic(
+        (
+            AtomicSite("O", (0.5, 0, 0)),
+            AtomicSite("Fe", (0, 0, 0), MagneticMoment((2.2, 0, 0))),
+            AtomicSite("Fe", (0.5, 0.5, 0.5), MagneticMoment((-2.2, 0, 0))),
+        )
+    )
+    _, species = classify_magnetic_sites(collinear_x)
+    mag = qe_magnetization(species, COLLINEAR)
+    assert mag["O"].is_zero and (mag["O"].angle1, mag["O"].angle2) == (90.0, 0.0)
+    assert mag["Fe1"].starting_magnetization == pytest.approx(2.2)
+    assert mag["Fe2"].starting_magnetization == pytest.approx(-2.2)
 
     assert all(m.is_zero for m in qe_magnetization(species, NONMAGNETIC).values())
 
@@ -277,8 +297,8 @@ def test_mn3sn_plan_is_noncollinear_from_the_scf(tmp_path):
 
     scf = plan.scf.system.entries
     assert scf["noncolin"] is True and scf["lspinorb"] is True and "nspin" not in scf
-    assert scf["starting_magnetization(1)"] == RawValue("1.0000")
-    assert scf["starting_magnetization(4)"] == RawValue("0.0000")
+    assert scf["starting_magnetization(1)"] == RawValue("3.0")  # 3 mu_B
+    assert scf["starting_magnetization(4)"] == RawValue("0.0")
     assert (scf["angle1(1)"], scf["angle2(1)"]) == (
         RawValue("90.0000"),
         RawValue("60.0000"),
@@ -340,7 +360,7 @@ def test_mn3sn_plan_with_use_ibrav_keeps_the_magnetic_order():
     ]
     assert system["noncolin"] is True and system["lspinorb"] is True
     for i in (1, 2, 3):
-        assert system[f"starting_magnetization({i})"] == RawValue("1.0000")
+        assert system[f"starting_magnetization({i})"] == RawValue("3.0")
         # the kagome moments stay in the plane perpendicular to the hexagonal axis
         assert system[f"angle1({i})"] == RawValue("90.0000")
     assert "angle1(4)" not in system
@@ -366,8 +386,8 @@ def test_afm_plan_is_collinear_scf_then_noncollinear_nscf():
     plan = build_plan(afm_fe(), psl_config(so=False))
     scf = plan.scf.system.entries
     assert scf["nspin"] == 2 and "noncolin" not in scf
-    assert scf["starting_magnetization(1)"] == RawValue("1.0000")
-    assert scf["starting_magnetization(2)"] == RawValue("-1.0000")
+    assert scf["starting_magnetization(1)"] == RawValue("2.2")
+    assert scf["starting_magnetization(2)"] == RawValue("-2.2")
     assert "angle1(1)" not in scf
     nscf = plan.nscf.system.entries
     assert (
@@ -375,7 +395,7 @@ def test_afm_plan_is_collinear_scf_then_noncollinear_nscf():
         and nscf["lforcet"] is True
         and nscf["lspinorb"] is False
     )
-    assert nscf["starting_magnetization(2)"] == RawValue("-1.0000")
+    assert nscf["starting_magnetization(2)"] == RawValue("-2.2")
     assert (nscf["angle1(1)"], nscf["angle2(1)"]) == (
         RawValue("0.0000"),
         RawValue("0.0000"),
@@ -384,6 +404,100 @@ def test_afm_plan_is_collinear_scf_then_noncollinear_nscf():
     assert (
         plan.scf.species[0].pseudo_file == "Fe.pbe-spn-rrkjus_psl.0.2.1.UPF"
     )  # scalar rel.
+
+
+def test_collinear_axis_is_written_for_a_nonmagnetic_first_species():
+    """lforcet rotates by the angles of type 1: O first, moments along x."""
+    structure = cubic(
+        (
+            AtomicSite("O", (0.5, 0, 0)),
+            AtomicSite("Fe", (0, 0, 0), MagneticMoment((2.2, 0, 0))),
+            AtomicSite("Fe", (0.5, 0.5, 0.5), MagneticMoment((-2.2, 0, 0))),
+        )
+    )
+    plan = build_plan(structure, psl_config(so=False))
+    assert [s.label for s in plan.scf.species] == ["O", "Fe1", "Fe2"]
+    scf = plan.scf.system.entries
+    assert scf["nspin"] == 2 and "angle1(1)" not in scf
+    assert scf["starting_magnetization(1)"] == RawValue("0.0")
+    assert scf["starting_magnetization(2)"] == RawValue("2.2")
+    assert scf["starting_magnetization(3)"] == RawValue("-2.2")
+    for name in ("nscf", "check_wannier", "bands_nscf"):
+        nscf = getattr(plan, name).system.entries
+        assert nscf["lforcet"] is True and nscf["noncolin"] is True
+        for i in (1, 2, 3):  # the common axis, type 1 included
+            assert nscf[f"angle1({i})"] == RawValue("90.0000")
+            assert nscf[f"angle2({i})"] == RawValue("0.0000")
+    assert "  angle1(1) = 90.0000\n" in render_plan(plan)["nscf.in"]
+
+
+def test_weak_moments_are_written_per_valence_electron(tmp_path):
+    """All moments below 1 mu_B: QE reads fractions, so divide by zval."""
+    from cif2qewan.exceptions import InputModelError
+
+    weak = cubic(
+        (
+            AtomicSite("Fe", (0, 0, 0), MagneticMoment((0, 0, 0.4))),
+            AtomicSite("Fe", (0.5, 0.5, 0.5), MagneticMoment((0, 0, -0.4))),
+        )
+    )
+    plan = build_plan(weak, psl_config(so=False))
+    scf = plan.scf.system.entries
+    assert scf["starting_magnetization(1)"] == RawValue("0.025")  # 0.4 / 16
+    assert scf["starting_magnetization(2)"] == RawValue("-0.025")
+    # 1 mu_B or more on one species: everything in mu_B, no zval needed
+    assert build_plan(afm_fe(), psl_config(so=False)).scf.system.entries[
+        "starting_magnetization(1)"
+    ] == RawValue("2.2")
+    # a table without zval cannot express moments below 1 mu_B
+    table = tmp_path / "table.csv"
+    table.write_text(
+        "atom,pp_file_name,nexclude,orbitals,ecutwfc,ecutrho\n"
+        "Fe,Fe.pbe-spn-rrkjus_psl.0.2.1,4,spd,64.0,782.0\n"
+    )
+    data = {
+        "pseudo_dir": "/pp",
+        "pp_list_path": str(table),
+        "scf_k_resolution": 0.15,
+        "degauss": 0.01,
+        "pw2wan": {"write_unk": ".true."},
+    }
+    with pytest.raises(InputModelError, match="no zval"):
+        build_plan(weak, Config.from_dict(data))
+    assert build_plan(afm_fe(), Config.from_dict(data)).scf.system.entries[
+        "starting_magnetization(2)"
+    ] == RawValue("-2.2")
+
+
+def test_tiny_moments_keep_their_precision():
+    """Lu (zval = 25) with 0.0011 mu_B: 4.4e-5 must not be rounded to 0."""
+    from cif2qewan.workflow.builder import format_magnetization
+
+    assert format_magnetization(3.0) == "3.0" and format_magnetization(0.0) == "0.0"
+    assert (
+        format_magnetization(-2.2) == "-2.2" and format_magnetization(0.025) == "0.025"
+    )
+    assert format_magnetization(0.0011 / 25) == "4.4e-05"
+
+    lu = cubic(
+        (
+            AtomicSite("Lu", (0, 0, 0), MagneticMoment((0, 0, 0.0011))),
+            AtomicSite("Lu", (0.5, 0.5, 0.5), MagneticMoment((0, 0, -0.0011))),
+        )
+    )
+    data = {
+        "pseudo_dir": "/pp",
+        "pp_list_path": "nc-sr-05_pbe_standard_upf.csv",  # Lu: zval = 25
+        "scf_k_resolution": 0.15,
+        "degauss": 0.01,
+        "pw2wan": {"write_unk": ".true."},
+    }
+    plan = build_plan(lu, Config.from_dict(data))
+    scf = plan.scf.system.entries
+    assert [s.label for s in plan.scf.species] == ["Lu1", "Lu2"]
+    assert scf["starting_magnetization(1)"] == RawValue("4.4e-05")
+    assert scf["starting_magnetization(2)"] == RawValue("-4.4e-05")
+    assert "  starting_magnetization(2) = -4.4e-05\n" in render_plan(plan)["scf.in"]
 
 
 def test_structure_moments_take_precedence_over_mag_flag():
