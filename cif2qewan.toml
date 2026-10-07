@@ -8,9 +8,11 @@ pseudo_dir = "/path/to/pseudo_dir"
 
 # Pseudopotential / Wannier projection table (CSV).
 # Default: the PSLibrary table "pp_psl_rrkj.csv" installed with cif2qewan.
-# A bare file name selects a bundled table: "pp_psl_rrkj.csv" (PSLibrary),
-# "nc-sr-05_pbe_standard_upf.csv" or "nc-sr-05_pbe_stringent_upf.csv"
-# (PseudoDojo). Anything with a directory part is used as a path.
+# A bare file name selects a bundled table: "pp_psl_rrkj.csv" (PSLibrary) or
+# a PseudoDojo table named after its archive, "nc-sr-05_pbe_standard_upf.csv",
+# "nc-sr-05_pbe_stringent_upf.csv", "nc-sr-04_pbe_standard_upf.csv",
+# "nc-sr-04_pbe_stringent_upf.csv", "nc-sr-04_pbesol_standard_upf.csv",
+# "nc-sr-04_pbesol_stringent_upf.csv". Anything with a directory part is a path.
 # pp_list_path = "nc-sr-05_pbe_standard_upf.csv"
 
 # The cif2cell executable used by the default structure reader.

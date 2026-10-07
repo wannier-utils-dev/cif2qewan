@@ -5,10 +5,11 @@ empty ``pp_file_name`` marks an element without a supported
 pseudopotential; empty ``nexclude``/``ecutwfc``/``ecutrho`` count as 0 and
 an empty ``orbitals`` as no projection.
 
-The tables shipped with the package (``pp_psl_rrkj.csv`` for PSLibrary,
-``nc-sr-05_pbe_standard_upf.csv`` and ``nc-sr-05_pbe_stringent_upf.csv`` for
-PseudoDojo) are found by :func:`resolve_table_path` from their bare file
-name, so that an installed cif2qewan works without a path to the table.
+The tables shipped with the package (``pp_psl_rrkj.csv`` for PSLibrary and
+the ``nc-sr-0*_*_upf.csv`` tables for the PseudoDojo sets, generated with
+``tools/pseudodojo_table.py``) are found by :func:`resolve_table_path` from
+their bare file name, so that an installed cif2qewan works without a path to
+the table.
 """
 
 from __future__ import annotations
