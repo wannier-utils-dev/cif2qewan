@@ -6,6 +6,7 @@ examples, the ``--reader pymatgen`` path, and the deprecated
 ``python -m cif2qewan.cif2qewan`` entry point.
 """
 
+import os
 import re
 import shutil
 import subprocess
@@ -14,7 +15,7 @@ import sys
 import numpy as np
 import pytest
 
-from conftest import EXAMPLE_CASES, generated_files, write_example_toml
+from conftest import EXAMPLE_CASES, REPO_ROOT, generated_files, write_example_toml
 
 FE = EXAMPLE_CASES[0]  # PSLibrary/Fe, --so --mag
 ALL_OUTPUTS = {
@@ -31,11 +32,16 @@ ALL_OUTPUTS = {
 
 
 def run_cli(args, cwd, module="cif2qewan.cli"):
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join(
+        item for item in (str(REPO_ROOT), env.get("PYTHONPATH", "")) if item
+    )
     return subprocess.run(
         [sys.executable, "-m", module, *args],
         cwd=cwd,
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
@@ -189,12 +195,26 @@ def test_use_ibrav_writes_the_bravais_lattice(tmp_path, reader):
     assert cell == pytest.approx(expected, abs=1e-7)
 
 
-@pytest.mark.parametrize("key", ["use_ibrav", "use_symwan"])
+@pytest.mark.parametrize("key", ["use_ibrav", "use_symwan", "guiding_centres"])
 def test_flags_must_be_booleans(tmp_path, key):
     write_example_toml(FE, tmp_path, **{key: "yes"})
     result = run_cli(["x.cif", "cif2qewan.toml"], tmp_path)
     assert result.returncode == 1
     assert f"{key} must be true or false" in result.stderr
+
+
+def test_guiding_centres_false_is_written_to_win(tmp_path):
+    pytest.importorskip("seekpath")
+    pytest.importorskip("pymatgen")
+    shutil.copy(FE.reference / "cif_scf.in", tmp_path)
+    write_example_toml(FE, tmp_path, guiding_centres=False)
+    result = run_cli(
+        ["x.cif", "cif2qewan.toml", "--cif2cell-output", "cif_scf.in"],
+        tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    win = (tmp_path / "pwscf.win").read_text()
+    assert win.count("guiding_centres = .false.\n") == 1
 
 
 def test_use_ibrav_and_use_symwan_combine(tmp_path):

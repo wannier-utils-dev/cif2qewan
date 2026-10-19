@@ -5,6 +5,7 @@ exclude_bands = 1-4
 
 dis_num_iter = 200
 num_iter = 0
+guiding_centres = .true.
 dis_froz_max = -200
 dis_froz_min = -200
 bands_plot = .true.

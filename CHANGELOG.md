@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- Generated `pwscf.win` now explicitly sets `guiding_centres = .true.` to
+  avoid inconsistent spread phase branches. Set `guiding_centres = false` in
+  the top level of `cif2qewan.toml` to emit `.false.`. This changes the
+  generated inputs compared with 0.2.0 / 0.3.0 and can change Wannier
+  results even when `num_iter = 0`; the reference examples are regenerated.
+
 ## [0.3.0] - 2026-10-19
 
 Rewrite of the generator as a pipeline of typed models (structure reader

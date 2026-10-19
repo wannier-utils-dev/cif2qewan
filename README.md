@@ -93,6 +93,7 @@ degauss = 0.01                             # smearing width (Ry)
 # cif2cell_path = "/path/to/cif2cell"              # default: cif2cell on PATH
 # use_ibrav = true                                 # default: false
 # use_symwan = true                                # default: false
+# guiding_centres = false                          # default: true
 
 [pw2wan]
 write_unk = true                           # UNK files for Wannier-function plots
@@ -109,12 +110,16 @@ write_unk = true                           # UNK files for Wannier-function plot
 | `cif2cell_path` | cif2cell executable (cif2cell reader only) | `cif2cell` on PATH |
 | `use_ibrav` | Write the cell as QE's `ibrav` with `A`, `B`, `C`, `cosAB`, ... (see below) | `false` |
 | `use_symwan` | Prepare the Wannier90 NSCF run for symWannier (see below) | `false` |
+| `guiding_centres` | Write `guiding_centres = .true.` or `.false.` to `pwscf.win`; accepts a TOML boolean | `true` |
 
 The NSCF (Wannier90) mesh is the SCF mesh clamped to 4..8 points per
 direction. The fixed settings (`nbnd`, `conv_thr`, `dis_num_iter`,
 `dis_froz_max = -200`, ...) are listed in `cif2qewan/workflow/builder.py`;
 `dis_froz_max` is meant to be set after the NSCF run (recommended:
 E_F + 1 eV to E_F + 3 eV), as `submit_all.sh` does.
+The generated `pwscf.win` explicitly enables `guiding_centres` by default.
+Set `guiding_centres = false` at the top level of the TOML file to disable it.
+This setting can affect the initial spread even when `num_iter = 0`.
 
 ### Pseudopotential tables
 
