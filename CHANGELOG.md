@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `CELL_PARAMETERS {alat}` is normalized by the rounded `A` that is written
+  to the input, so QE and Wannier90 build the same cell when `A` is not a
+  five-decimal number (pymatgen reader and `use_ibrav = false`). The
+  cif2cell path and the reference examples are unchanged.
+
 ## [0.3.0] - 2026-10-19
 
 Rewrite of the generator as a pipeline of typed models (structure reader
