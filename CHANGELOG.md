@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-10-07
+## [0.3.0] - 2026-10-19
 
 Rewrite of the generator as a pipeline of typed models (structure reader
 -> workflow builder -> renderers -> files). The command line and the
