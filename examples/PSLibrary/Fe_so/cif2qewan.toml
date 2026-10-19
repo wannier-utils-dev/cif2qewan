@@ -1,0 +1,6 @@
+pseudo_dir = "/path/to/pslibrary"
+scf_k_resolution = 0.15
+degauss = 0.01
+
+[pw2wan]
+write_unk = ".true."
