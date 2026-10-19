@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `wannier_conv` now applies `pwscf_wsvec.dat` when Wannier90 used its
+  default `use_ws_distance = true`, so its CONV values reproduce Wannier90's
+  band interpolation. `--no-ws-distance` retains the legacy comparison, and
+  a missing WS file is reported instead of silently using another method.
+
 ## [0.3.0] - 2026-10-19
 
 Rewrite of the generator as a pipeline of typed models (structure reader
