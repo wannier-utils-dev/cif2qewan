@@ -11,6 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   default `use_ws_distance = true`, so its CONV values reproduce Wannier90's
   band interpolation. `--no-ws-distance` retains the legacy comparison, and
   a missing WS file is reported instead of silently using another method.
+- `CELL_PARAMETERS {alat}` is normalized by the rounded `A` that is written
+  to the input, so QE and Wannier90 build the same cell when `A` is not a
+  five-decimal number (pymatgen reader and `use_ibrav = false`). The
+  cif2cell path and the reference examples are unchanged.
+
+### Changed
+- The README is reduced to installation and a quick start; the command-line
+  options, configuration, pseudopotential tables, `use_ibrav`,
+  `use_symwan`, workflow and Python API moved to `docs/usage.md`.
 
 ## [0.3.0] - 2026-10-19
 
