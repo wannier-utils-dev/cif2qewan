@@ -53,8 +53,9 @@ class Config:
         (no ``nosym``, automatic mesh) and ``irr_bz = .true.`` in
         ``pw2wan.in``. Default false.
     guiding_centres : bool
-        Use projection centres to choose the spread phase branch in Wannier90.
-        Written explicitly to ``pwscf.win``. Default true.
+        Let Wannier90 choose the phase branches from the projection centres
+        when minimizing the spread (no effect with ``num_iter = 0``). Written
+        explicitly to ``pwscf.win``. Default true.
     """
 
     pseudo_dir: str

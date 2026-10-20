@@ -38,6 +38,27 @@ def test_hamiltonian_reader_raises_a_typed_error(tmp_path):
     assert issubclass(DataFileError, Cif2qewanError)
 
 
+def test_hamiltonian_applies_ws_shifts_only_between_mesh_points(tmp_path):
+    hr = tmp_path / "pwscf_hr.dat"
+    hr.write_text("created by test\n1\n1\n1\n0 0 0 1 1 2.0 0.0\n")
+    ws = tmp_path / "pwscf_wsvec.dat"
+    ws.write_text("## use_ws_distance=.true.\n" "0 0 0 1 1\n" "2\n" "0 0 0\n" "4 0 0\n")
+    h = Hamiltonian(str(hr))
+    assert h.diagonalize([0.125, 0, 0])[0][0] == pytest.approx(2.0)
+    h.load_wsvec(str(ws))
+    assert h.diagonalize([0.25, 0, 0])[0][0] == pytest.approx(2.0)
+    assert h.diagonalize([0.125, 0, 0])[0][0] == pytest.approx(0.0, abs=1e-14)
+
+
+def test_hamiltonian_rejects_mismatched_ws_records(tmp_path):
+    hr = tmp_path / "pwscf_hr.dat"
+    hr.write_text("created by test\n1\n1\n1\n0 0 0 1 1 2.0 0.0\n")
+    ws = tmp_path / "pwscf_wsvec.dat"
+    ws.write_text("## use_ws_distance=.true.\n0 0 0 1 2\n1\n0 0 0\n")
+    with pytest.raises(DataFileError, match="WS record order differs"):
+        Hamiltonian(str(hr)).load_wsvec(str(ws))
+
+
 def run_module(module, args, cwd):
     return subprocess.run(
         [sys.executable, "-m", module, *args], cwd=cwd, capture_output=True, text=True

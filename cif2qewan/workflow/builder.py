@@ -391,8 +391,11 @@ class WorkflowBuilder:
                 if hints.alat is not None
                 else float(np.linalg.norm(structure.lattice_matrix[0]))
             )
+            # QE reads the rounded A literal below.  Normalize by that same
+            # value so QE and Wannier90 reconstruct the same physical cell.
+            qe_alat = float(f"{alat:10.5f}")
             cell: Optional[CellParameters] = CellParameters(
-                "alat", structure.lattice_matrix / alat
+                "alat", structure.lattice_matrix / qe_alat
             )
             cell_entries: Dict = {"ibrav": 0, "A": RawValue(f"{alat:10.5f}")}
         else:

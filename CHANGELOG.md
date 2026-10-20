@@ -6,12 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `wannier_conv` now applies `pwscf_wsvec.dat` when Wannier90 used its
+  default `use_ws_distance = true`, so its CONV values reproduce Wannier90's
+  band interpolation. `--no-ws-distance` retains the legacy comparison, and
+  a missing WS file is reported instead of silently using another method.
+- `CELL_PARAMETERS {alat}` is normalized by the rounded `A` that is written
+  to the input, so QE and Wannier90 build the same cell when `A` is not a
+  five-decimal number (pymatgen reader and `use_ibrav = false`). The
+  cif2cell path and the reference examples are unchanged.
+
 ### Changed
-- Generated `pwscf.win` now explicitly sets `guiding_centres = .true.` to
-  avoid inconsistent spread phase branches. Set `guiding_centres = false` in
-  the top level of `cif2qewan.toml` to emit `.false.`. This changes the
-  generated inputs compared with 0.2.0 / 0.3.0 and can change Wannier
-  results even when `num_iter = 0`; the reference examples are regenerated.
+- Generated `pwscf.win` now explicitly sets `guiding_centres = .true.`, so
+  that Wannier90 uses the projection centres to choose the phase branches
+  when the spread is minimized. Set `guiding_centres = false` at the top
+  level of `cif2qewan.toml` to emit `.false.`. The generated `pwscf.win`
+  differs from 0.2.0 / 0.3.0 by this line (reference examples
+  regenerated). With the default `num_iter = 0` the Wannier functions are
+  unchanged (bcc Fe with and without `--so --mag`: identical spreads,
+  centres and `hr.dat`); the setting matters once `num_iter` is raised.
+- The README is reduced to installation and a quick start; the command-line
+  options, configuration, pseudopotential tables, `use_ibrav`,
+  `use_symwan`, workflow and Python API moved to `docs/usage.md`.
 
 ## [0.3.0] - 2026-10-19
 

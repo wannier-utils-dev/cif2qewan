@@ -15,6 +15,7 @@ import argparse
 import sys
 import itertools
 import os
+import re
 from typing import Tuple
 
 # Third-party imports
@@ -74,6 +75,64 @@ class Hamiltonian:
         """
         self.reorder = reorder
         self._read_hr(file_hr)
+        self._ws_vectors = None
+        self._ws_matrices = None
+
+    def load_wsvec(self, file_wsvec: str) -> None:
+        """Use Wannier90's pair-dependent WS shifts when interpolating bands.
+
+        ``hr.dat`` stores one R for each matrix element, while ``wsvec.dat``
+        specifies the Born-von-Karman equivalent R vectors selected for each
+        pair of Wannier functions.  Equal-distance choices share the weight.
+        """
+        try:
+            with open(file_wsvec) as stream:
+                header = stream.readline().lower()
+                if "write_ndegen_applied=.true." in header:
+                    raise ValueError("write_ndegen_applied output is not supported")
+                if "use_ws_distance=.false." in header:
+                    self._ws_vectors = None
+                    self._ws_matrices = None
+                    return
+                if "use_ws_distance=.true." not in header:
+                    raise ValueError("missing use_ws_distance header")
+
+                matrices = {}
+                for ir in range(self.nrpts):
+                    r = self.irvec[:, ir]
+                    for m in range(self.num_wann):
+                        for n in range(self.num_wann):
+                            record = [int(x) for x in stream.readline().split()]
+                            if record != [*r, m + 1, n + 1]:
+                                raise ValueError(
+                                    f"WS record order differs at R={ir}, m={m}, n={n}"
+                                )
+                            count = int(stream.readline())
+                            if count < 1:
+                                raise ValueError(
+                                    "WS shift multiplicity must be positive"
+                                )
+                            amplitude = self.ham_r[m, n, ir] / (self.ndegen[ir] * count)
+                            for _ in range(count):
+                                shift = [int(x) for x in stream.readline().split()]
+                                if len(shift) != 3:
+                                    raise ValueError(
+                                        "WS shift must have three components"
+                                    )
+                                key = tuple(int(x) for x in r + shift)
+                                if key not in matrices:
+                                    matrices[key] = np.zeros(
+                                        (self.num_wann, self.num_wann), dtype=complex
+                                    )
+                                matrices[key][m, n] += amplitude
+                if stream.read().strip():
+                    raise ValueError("unread WS records remain")
+            self._ws_vectors = np.array(list(matrices), dtype=np.int64)
+            self._ws_matrices = np.stack(list(matrices.values()))
+        except (OSError, ValueError, IndexError, TypeError) as exc:
+            raise DataFileError(
+                f"cannot read the Wannier90 WS vectors {file_wsvec}: {exc}"
+            ) from exc
 
     def _read_hr(self, file_hr: str) -> None:
         """
@@ -178,15 +237,13 @@ class Hamiltonian:
         >>> ek, v = h.diagonalize([0.0, 0.0, 0.0])
         >>> print(f"Energies: {ek}")
         """
-        # Calculate k·R for all R vectors
-        kr = np.dot(k, self.irvec)
-
-        # Fourier transform factor: exp(i*k·R) / deg(R)
-        pi = np.pi
-        factor = np.exp(2 * pi * 1j * kr) / self.ndegen
-
-        # Construct k-space Hamiltonian
-        ham = np.dot(self.ham_r, factor)
+        if self._ws_vectors is None:
+            # Standard interpolation without pair-dependent WS shifts.
+            factor = np.exp(2j * np.pi * np.dot(k, self.irvec)) / self.ndegen
+            ham = np.dot(self.ham_r, factor)
+        else:
+            factor = np.exp(2j * np.pi * np.dot(self._ws_vectors, k))
+            ham = np.einsum("r,rmn->mn", factor, self._ws_matrices, optimize=True)
 
         # Diagonalize to get eigenvalues and eigenvectors
         e, v = np.linalg.eigh(ham)
@@ -321,6 +378,15 @@ def get_nexclude(pwscf_win: str) -> int:
     return nexclude
 
 
+def ws_distance_disabled(pwscf_win: str) -> bool:
+    """Check whether the input explicitly requests legacy interpolation."""
+    with open(pwscf_win) as stream:
+        return any(
+            re.match(r"^\s*use_ws_distance\s*=\s*\.false\.\s*(?:!.*)?$", line, re.I)
+            for line in stream
+        )
+
+
 def main(argv=None) -> int:
     """
     Main function for wannier_conv command-line interface.
@@ -357,6 +423,11 @@ Examples:
         dest="nscf_file",
         help="Path to NSCF output file",
     )
+    parser.add_argument(
+        "--no-ws-distance",
+        action="store_true",
+        help="Use legacy interpolation without pwscf_wsvec.dat",
+    )
 
     # Parse command-line arguments
     args = parser.parse_args(argv)
@@ -374,6 +445,15 @@ Examples:
         print("Loading Wannier90 Hamiltonian...")
         nexclude = get_nexclude("./pwscf.win")
         h = Hamiltonian("./pwscf_hr.dat")
+        wsvec_file = "./pwscf_wsvec.dat"
+        if not args.no_ws_distance:
+            if os.path.exists(wsvec_file):
+                h.load_wsvec(wsvec_file)
+            elif not ws_distance_disabled("./pwscf.win"):
+                raise DataFileError(
+                    "pwscf_wsvec.dat is missing; cannot reproduce Wannier90's "
+                    "default use_ws_distance interpolation"
+                )
 
         print(f"Comparing energies in window [{emin:.2f}:{emax:.2f}] eV...")
 
