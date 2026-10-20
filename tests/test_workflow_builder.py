@@ -517,6 +517,23 @@ def test_hints_must_match_the_structure():
     assert plan.wannier90.mp_grid == (4, 4, 4)  # clamped nscf mesh
 
 
+def test_rounded_qe_alat_matches_wannier_cell():
+    lattice = np.eye(3) * 2.4854929
+    structure = NormalizedStructure(lattice, (AtomicSite("Fe", (0, 0, 0)),))
+    plan = WorkflowBuilder(example_config(EXAMPLE_CASES[0])).build(structure)
+    qe_alat = float(plan.scf.system.entries["A"].literal)
+    qe_cell = qe_alat * plan.scf.cell.matrix()
+    assert qe_alat == 2.48549
+    assert qe_cell == pytest.approx(lattice, abs=1e-12)
+    rendered = render_plan(plan)["pwscf.win"]
+    rows = rendered.split("begin unit_cell_cart\nang\n", 1)[1]
+    rows = rows.split("end unit_cell_cart", 1)[0]
+    win_cell = np.array(
+        [[float(x) for x in row.split()] for row in rows.splitlines() if row.strip()]
+    )
+    assert win_cell == pytest.approx(qe_cell, abs=1e-7)
+
+
 def test_builder_rejects_partial_occupancy():
     partial = NormalizedStructure(
         np.eye(3) * 4.0,
