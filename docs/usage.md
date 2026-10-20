@@ -192,7 +192,11 @@ band_comp -o ./                                          # band_compare.png / .e
 ```
 
 `wannier_conv` prints the average and maximum difference between the DFT and
-the Wannier-interpolated energies up to `-e` eV above the Fermi level.
+the Wannier-interpolated energies up to `-e` eV above the Fermi level. It
+reads `pwscf_wsvec.dat` to match Wannier90's default `use_ws_distance`
+interpolation. Use `--no-ws-distance` only to compare the older interpolation
+without WS shifts. If Wannier90 used WS distance and the WS file is missing,
+the comparison stops with an error.
 `band_comp` reads `scf.out`, `pwscf.win`, `pwscf_band.dat` (Wannier90 with
 `bands_plot`) and `band/bands.out.gnu` (`bands.x`) from the current
 directory.
