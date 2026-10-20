@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   five-decimal number (pymatgen reader and `use_ibrav = false`). The
   cif2cell path and the reference examples are unchanged.
 
+### Changed
+- The README is reduced to installation and a quick start; the command-line
+  options, configuration, pseudopotential tables, `use_ibrav`,
+  `use_symwan`, workflow and Python API moved to `docs/usage.md`.
+
 ## [0.3.0] - 2026-10-19
 
 Rewrite of the generator as a pipeline of typed models (structure reader
