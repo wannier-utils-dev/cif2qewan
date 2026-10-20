@@ -103,8 +103,14 @@ direction. The fixed settings (`nbnd`, `conv_thr`, `dis_num_iter`,
 E_F + 1 eV to E_F + 3 eV), as `submit_all.sh` does.
 The generated `pwscf.win` enables `guiding_centres` by default (set
 `guiding_centres = false` at the top level of the TOML file to disable it);
-it has no effect with the default `num_iter = 0` and guides the phase
-branches once `num_iter` is raised.
+it acts even with the default `num_iter = 0`. Wannier90 then uses the
+projection centres to choose the branch of `Im ln M`, which can move the
+reported centres by lattice vectors and change the spreads; with
+`use_ws_distance` (the Wannier90 default) the centres determine
+`pwscf_wsvec.dat`, so the interpolated bands and the `wannier_conv` values
+can change, while `pwscf_hr.dat` stays the same. In bcc Fe nothing changes;
+in Sb the total spread dropped from 172.4 to 16.1 Å². Set
+`guiding_centres = false` to reproduce results of earlier versions.
 
 ### Pseudopotential tables
 

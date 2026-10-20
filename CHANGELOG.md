@@ -22,9 +22,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   when the spread is minimized. Set `guiding_centres = false` at the top
   level of `cif2qewan.toml` to emit `.false.`. The generated `pwscf.win`
   differs from 0.2.0 / 0.3.0 by this line (reference examples
-  regenerated). With the default `num_iter = 0` the Wannier functions are
-  unchanged (bcc Fe with and without `--so --mag`: identical spreads,
-  centres and `hr.dat`); the setting matters once `num_iter` is raised.
+  regenerated). The setting acts even with the default `num_iter = 0`:
+  Wannier90 uses it to choose the branch of `Im ln M` for the reported
+  centres and spreads, and through `use_ws_distance` the centres change
+  `pwscf_wsvec.dat`, the interpolated bands and the `wannier_conv` values;
+  `pwscf_hr.dat` is unchanged. For bcc Fe (with and without `--so --mag`)
+  nothing changed; for Sb (`Sb:s,p`, 4x4x4 mesh) the total spread dropped
+  from 172.4 to 16.1 A^2 while the CONV below E_F went from 0.042 to
+  0.045 eV, so a better band error is not guaranteed. Set
+  `guiding_centres = false` to reproduce earlier results.
 - The README is reduced to installation and a quick start; the command-line
   options, configuration, pseudopotential tables, `use_ibrav`,
   `use_symwan`, workflow and Python API moved to `docs/usage.md`.
