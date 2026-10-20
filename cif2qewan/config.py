@@ -53,9 +53,11 @@ class Config:
         (no ``nosym``, automatic mesh) and ``irr_bz = .true.`` in
         ``pw2wan.in``. Default false.
     guiding_centres : bool
-        Let Wannier90 choose the phase branches from the projection centres
-        when minimizing the spread (no effect with ``num_iter = 0``). Written
-        explicitly to ``pwscf.win``. Default true.
+        Let Wannier90 choose the branch of ``Im ln M`` from the projection
+        centres. This acts even with ``num_iter = 0``: the reported centres
+        and spreads, and through ``use_ws_distance`` the interpolated bands,
+        can change (``hr.dat`` does not). Written explicitly to
+        ``pwscf.win``. Default true.
     """
 
     pseudo_dir: str
