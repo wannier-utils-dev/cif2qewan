@@ -17,6 +17,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   cif2cell path and the reference examples are unchanged.
 
 ### Changed
+- Generated `pwscf.win` now explicitly sets `guiding_centres = .true.`, so
+  that Wannier90 uses the projection centres to choose the phase branches
+  when the spread is minimized. Set `guiding_centres = false` at the top
+  level of `cif2qewan.toml` to emit `.false.`. The generated `pwscf.win`
+  differs from 0.2.0 / 0.3.0 by this line (reference examples
+  regenerated). With the default `num_iter = 0` the Wannier functions are
+  unchanged (bcc Fe with and without `--so --mag`: identical spreads,
+  centres and `hr.dat`); the setting matters once `num_iter` is raised.
 - The README is reduced to installation and a quick start; the command-line
   options, configuration, pseudopotential tables, `use_ibrav`,
   `use_symwan`, workflow and Python API moved to `docs/usage.md`.

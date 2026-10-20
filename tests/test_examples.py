@@ -56,9 +56,9 @@ def test_nbnd_relations(generated):
 
 # --------------------------------------------------------------------------
 # 0.2.0 outputs (tests/fixtures/v0.2.0): the generated inputs differ from the
-# 0.2.0 ones only in the K_POINTS spelling of scf.in and the layout of
-# pwscf.win; every other file is byte for byte the 0.2.0 output, which the
-# reference examples pin above.
+# 0.2.0 ones only in the K_POINTS spelling of scf.in, the layout of
+# pwscf.win and its new guiding_centres keyword; every other file is byte for
+# byte the 0.2.0 output, which the reference examples pin above.
 # --------------------------------------------------------------------------
 
 V020 = pathlib.Path(__file__).parent / "fixtures" / "v0.2.0"
@@ -84,4 +84,7 @@ def test_win_matches_0_2_0_up_to_layout(generated):
     old = (V020 / case.example / "pwscf.win").read_text()
     new = (workdir / "pwscf.win").read_text()
     assert old != new  # the layout did change ...
-    assert _normalized(old) == _normalized(new)  # ... and nothing else
+    assert "guiding_centres = .true.\n" in new
+    assert _normalized(old) == _normalized(
+        new.replace("guiding_centres = .true.\n", "")
+    )

@@ -52,6 +52,10 @@ class Config:
         Prepare the Wannier90 NSCF run for symWannier: irreducible k points
         (no ``nosym``, automatic mesh) and ``irr_bz = .true.`` in
         ``pw2wan.in``. Default false.
+    guiding_centres : bool
+        Let Wannier90 choose the phase branches from the projection centres
+        when minimizing the spread (no effect with ``num_iter = 0``). Written
+        explicitly to ``pwscf.win``. Default true.
     """
 
     pseudo_dir: str
@@ -64,6 +68,7 @@ class Config:
     mag: bool = False
     use_ibrav: bool = False
     use_symwan: bool = False
+    guiding_centres: bool = True
 
     def __post_init__(self) -> None:
         for name in ("cif2cell_path", "pseudo_dir", "pp_list_path"):
@@ -80,6 +85,10 @@ class Config:
             raise ConfigError(f"degauss must be positive, got {self.degauss}")
         if "write_unk" not in self.pw2wan:
             raise ConfigError("the [pw2wan] table needs write_unk")
+        if not isinstance(self.guiding_centres, bool):
+            raise ConfigError(
+                f"guiding_centres must be true or false, got {self.guiding_centres!r}"
+            )
         # Keep accepting the Fortran-style strings used by the legacy TOML
         # files, but reject values that would produce an invalid QE namelist.
         self._logical_option(self.pw2wan["write_unk"], "pw2wan.write_unk")
@@ -117,8 +126,8 @@ class Config:
         if not isinstance(pw2wan, dict):
             raise ConfigError("the configuration needs a [pw2wan] table")
         flags = {}
-        for key in ("use_ibrav", "use_symwan"):
-            flags[key] = data.get(key, False)
+        for key in ("use_ibrav", "use_symwan", "guiding_centres"):
+            flags[key] = data.get(key, key == "guiding_centres")
             if not isinstance(flags[key], bool):
                 raise ConfigError(f"{key} must be true or false, got {flags[key]!r}")
         try:
@@ -133,6 +142,7 @@ class Config:
                 mag=bool(mag),
                 use_ibrav=flags["use_ibrav"],
                 use_symwan=flags["use_symwan"],
+                guiding_centres=flags["guiding_centres"],
             )
         except (TypeError, ValueError) as exc:
             raise ConfigError(f"invalid configuration value: {exc}") from exc

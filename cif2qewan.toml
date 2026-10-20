@@ -38,6 +38,11 @@ degauss = 0.01
 # `symwannier expand pwscf` after pw2wannier90.x and before wannier90.x.
 # use_symwan = false
 
+# guiding_centres in pwscf.win: Wannier90 chooses the phase branches from the
+# projection centres when minimizing the spread (no effect with the default
+# num_iter = 0). Default: true. Set false to emit guiding_centres = .false.
+# guiding_centres = false
+
 # pw2wannier90 options
 [pw2wan]
 # Write the UNK files needed to plot Wannier functions (true / false)

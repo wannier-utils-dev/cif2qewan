@@ -27,6 +27,7 @@ PATH = [
 PARAMETERS = {
     "dis_num_iter": 200,
     "num_iter": 0,
+    "guiding_centres": True,
     "dis_froz_max": -200,
     "dis_froz_min": -200,
     "bands_plot": True,

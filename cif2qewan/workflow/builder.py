@@ -15,7 +15,8 @@ results of published workflows:
 - ``conv_thr``: ``1.0d-8`` (scf), ``1.d-10`` (nscf), ``1.d-8`` (check_wannier,
   bands); ``ecutwfc`` / ``ecutrho``: maximum over the species from the table.
 - Wannier90: ``num_bands = 3 * num_wann``, ``exclude_bands = 1-nexclude``,
-  ``dis_num_iter = 200``, ``num_iter = 0``, ``dis_froz_max = dis_froz_min = -200``.
+  ``dis_num_iter = 200``, ``num_iter = 0``, ``dis_froz_max = dis_froz_min = -200``;
+  ``guiding_centres`` defaults to true and can be disabled in TOML.
 
 Magnetism policy:
 
@@ -119,6 +120,7 @@ CONV_THR_CHECK = "1.d-8"
 WANNIER90_PARAMETERS = {
     "dis_num_iter": 200,
     "num_iter": 0,
+    "guiding_centres": True,
     "dis_froz_max": -200,
     "dis_froz_min": -200,
     "bands_plot": True,
@@ -494,6 +496,7 @@ class WorkflowBuilder:
         )
 
         wannier90_parameters = dict(WANNIER90_PARAMETERS)
+        wannier90_parameters["guiding_centres"] = config.guiding_centres
         # wannier_plot reads UNK files written by pw2wannier90.x.  Keeping it
         # enabled while write_unk is false makes Wannier90 abort after the
         # Hamiltonian and band files have otherwise been generated.  With

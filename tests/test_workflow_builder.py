@@ -61,6 +61,7 @@ def test_config_from_the_example_toml():
     assert config.scf_k_resolution == pytest.approx(0.15)
     assert config.degauss == pytest.approx(0.01)
     assert config.pw2wan == {"write_unk": ".true."}
+    assert config.guiding_centres is True
     assert config.so and not config.mag and config.spinor
     # the example gives neither key: cif2cell from PATH, the bundled PSL table
     assert config.cif2cell_path == "cif2cell"
@@ -133,6 +134,10 @@ def test_config_errors(tmp_path):
         Config.from_dict({**base, "degauss": "abc", "pw2wan": {"write_unk": ".true."}})
     with pytest.raises(ConfigError, match="pw2wan.write_unk"):
         Config.from_dict({**base, "pw2wan": {"write_unk": "sometimes"}})
+    with pytest.raises(ConfigError, match="guiding_centres must be true or false"):
+        Config.from_dict(
+            {**base, "pw2wan": {"write_unk": True}, "guiding_centres": "false"}
+        )
     bad = tmp_path / "bad.toml"
     bad.write_text("this = [is not toml\n")
     with pytest.raises(ConfigError, match="cannot read"):
@@ -302,6 +307,15 @@ def test_plan_reproduces_the_example(case):
     }
     for path, text in files.items():
         assert text == (case.reference / path).read_text(), f"{case.example}/{path}"
+
+
+def test_guiding_centres_can_be_disabled():
+    data = toml.load(FE / "cif2qewan.toml")
+    data["guiding_centres"] = False
+    output = Cif2cellReader.read_output(FE / "cif_scf.in")
+    plan = plan_from_cif2cell_output(output, Config.from_dict(data))
+    assert plan.wannier90.parameters["guiding_centres"] is False
+    assert "guiding_centres = .false.\n" in render_plan(plan)["pwscf.win"]
 
 
 def test_pymatgen_path_gives_an_equivalent_plan(case):
